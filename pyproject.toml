@@ -1,0 +1,67 @@
+[project]
+name = "dereel"
+version = "0.1.0"
+description = "크롤링 기반 재고·가격 감시 및 Telegram 알림 시스템"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "pydantic>=2",
+    "pydantic-settings>=2.13.1",
+    "python-telegram-bot>=22.7",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.20.1",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "respx>=0.23.1",
+    "ruff>=0.15.10",
+]
+
+# ── 실행 진입점 ──────────────────────────────────────────
+[project.scripts]
+dereel = "dereel.run:main"
+
+# ── Ruff (린터 + 포매터) ─────────────────────────────────
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (line-length로 관리)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dereel"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ── Mypy (타입 체커) ─────────────────────────────────────
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+exclude = ["tests/"]
+
+# ── Pytest ───────────────────────────────────────────────
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+log_cli = true
+log_cli_level = "DEBUG"
