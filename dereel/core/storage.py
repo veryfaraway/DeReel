@@ -3,66 +3,64 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from pathlib import Path
 
-from loguru import logger
-
 
 class Storage(ABC):
 
     @abstractmethod
-    def load_state(self, key: str) -> dict:
-        """이전 상태를 불러온다."""
+    def load_state(self, site: str) -> dict:
+        ...
 
     @abstractmethod
-    def save_state(self, key: str, data: dict) -> None:
-        """현재 상태를 저장한다."""
+    def save_state(self, site: str, state: dict) -> None:
+        ...
 
     @abstractmethod
-    def get_last_alert_time(self, alert_key: str) -> datetime | None:
-        """마지막 알림 발송 시각을 반환한다."""
+    def get_last_alert_time(self, key: str) -> datetime | None:
+        ...
 
     @abstractmethod
-    def save_alert_time(self, alert_key: str, dt: datetime) -> None:
-        """알림 발송 시각을 저장한다."""
+    def save_alert_time(self, key: str, timestamp: datetime) -> None:
+        ...
 
 
-class JsonFileStorage(Storage):
+class JsonStorage(Storage):
+    """JSON 파일 기반 Storage 구현체."""
 
-    def __init__(self, data_dir: str = "./data") -> None:
-        self._dir = Path(data_dir)
-        self._dir.mkdir(parents=True, exist_ok=True)
-        self._state_file = self._dir / "stock_state.json"
-        self._alert_file = self._dir / "alert_history.json"
+    def __init__(self, data_dir: str = "data") -> None:
+        self._base = Path(data_dir)
+        self._base.mkdir(parents=True, exist_ok=True)
 
-    def _read(self, path: Path) -> dict:
+    def _state_path(self, site: str) -> Path:
+        return self._base / f"{site}_state.json"
+
+    def _alert_path(self, site: str) -> Path:
+        return self._base / f"{site}_alerts.json"
+
+    def load_state(self, site: str) -> dict:
+        path = self._state_path(site)
         if not path.exists():
             return {}
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"파일 읽기 실패 {path} — {e}")
-            return {}
+        return json.loads(path.read_text())
 
-    def _write(self, path: Path, data: dict) -> None:
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    def save_state(self, site: str, state: dict) -> None:
+        self._state_path(site).write_text(
+            json.dumps(state, ensure_ascii=False, indent=2)
+        )
 
-    def load_state(self, key: str) -> dict:
-        return self._read(self._state_file).get(key, {})
-
-    def save_state(self, key: str, data: dict) -> None:
-        state = self._read(self._state_file)
-        state[key] = data
-        self._write(self._state_file, state)
-        logger.debug(f"상태 저장 완료 — {key}")
-
-    def get_last_alert_time(self, alert_key: str) -> datetime | None:
-        history = self._read(self._alert_file)
-        raw = history.get(alert_key)
-        if raw is None:
+    def get_last_alert_time(self, key: str) -> datetime | None:
+        site = key.split(":")[0]
+        path = self._alert_path(site)
+        if not path.exists():
             return None
-        return datetime.fromisoformat(raw)
+        data = json.loads(path.read_text())
+        ts = data.get(key)
+        if ts is None:
+            return None
+        return datetime.fromtimestamp(ts, tz=timezone.utc)
 
-    def save_alert_time(self, alert_key: str, dt: datetime) -> None:
-        history = self._read(self._alert_file)
-        history[alert_key] = dt.isoformat()
-        self._write(self._alert_file, history)
-        logger.debug(f"알림 이력 저장 — {alert_key}")
+    def save_alert_time(self, key: str, timestamp: datetime) -> None:
+        site = key.split(":")[0]
+        path = self._alert_path(site)
+        data = json.loads(path.read_text()) if path.exists() else {}
+        data[key] = timestamp.timestamp()
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2))

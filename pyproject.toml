@@ -5,11 +5,14 @@ description = "크롤링 기반 재고·가격 감시 및 Telegram 알림 시스
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
+    "playwright>=1.59.0",
     "pydantic>=2",
     "pydantic-settings>=2.13.1",
     "python-telegram-bot>=22.7",
+    "pyyaml>=6.0.3",
 ]
 
 [dependency-groups]

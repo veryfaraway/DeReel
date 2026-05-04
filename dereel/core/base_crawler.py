@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
+import httpx
 from loguru import logger
 
 
@@ -8,29 +8,19 @@ class BaseCrawler(ABC):
 
     site_name: str = ""
 
-    def __init__(self, config: dict[str, Any]) -> None:
-        self.config = config
+    async def __aenter__(self):
+        self._client = httpx.AsyncClient(timeout=30.0)
+        return self
+
+    async def __aexit__(self, *args):
+        await self._client.aclose()
 
     @abstractmethod
-    async def fetch(self) -> Any:
-        """사이트에서 원본 데이터를 가져온다."""
+    async def fetch(self, url: str) -> list:
+        """URL을 크롤링해 StockResult 리스트를 반환한다."""
 
-    @abstractmethod
-    def parse(self, raw_data: Any) -> list[Any]:
-        """원본 데이터를 Result 리스트로 변환한다."""
-
-    @abstractmethod
-    def format_message(self, diff: dict[str, Any]) -> str:
-        """Telegram 알림 메시지를 생성한다."""
-
-    async def run(self) -> None:
-        """fetch → parse 전체 흐름 실행."""
-        logger.info(f"[{self.site_name}] 크롤링 시작")
-        try:
-            raw = await self.fetch()
-            results = self.parse(raw)
-            logger.info(f"[{self.site_name}] 파싱 완료 — {len(results)}건")
-            return results
-        except Exception as e:
-            logger.error(f"[{self.site_name}] 실행 실패 — {e}")
-            raise
+    async def _get(self, url: str) -> str:
+        logger.debug(f"[{self.site_name}] GET {url}")
+        resp = await self._client.get(url)
+        resp.raise_for_status()
+        return resp.text
