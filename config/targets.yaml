@@ -1,0 +1,33 @@
+targets:
+  - site: apple_refurb
+    type: stock
+    interval_hours: 4
+    url: "https://www.apple.com/kr/shop/refurbished/ipad"
+    enabled: true
+    dry_run: false
+
+  - site: apple_refurb
+    type: stock
+    interval_hours: 4
+    url: "https://www.apple.com/kr/shop/refurbished/mac"
+    enabled: true
+    dry_run: false
+
+  # 추후 추가 예정
+  - site: steam
+    type: price
+    interval_hours: 3
+    enabled: false
+    dry_run: true
+
+  - site: epic
+    type: price
+    interval_hours: 6
+    enabled: false
+    dry_run: true
+
+  - site: amazon
+    type: price
+    interval_hours: 12
+    enabled: false
+    dry_run: true

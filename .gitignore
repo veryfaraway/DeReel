@@ -12,8 +12,6 @@ __pycache__/
 .mypy_cache/
 
 # 상태 파일 (자동 관리)
-data/stock_state.json
-data/alert_history.json
 
 # macOS
 .DS_Store
