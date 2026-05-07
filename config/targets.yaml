@@ -1,3 +1,4 @@
+# config/targets.yaml
 targets:
   - site: apple_refurb
     type: stock
@@ -9,26 +10,36 @@ targets:
   - site: apple_refurb
     type: stock
     interval_hours: 4
-    #url: "https://www.apple.com/kr/shop/refurbished/iphone"
     url: "https://www.apple.com/kr/shop/refurbished/airpods"
     enabled: true
     dry_run: false
 
-  # 추후 추가 예정
   - site: steam
     type: price
     interval_hours: 3
+    currency: KRW
     enabled: false
     dry_run: true
+    products:
+      - app_id: "32360"
+        name: "The Secret of Monkey Island: Special Edition"
+        target_price: 5000
+      - app_id: "32310"
+        name: "Indiana Jones and the Last Crusade"
+        target_price: 5000
 
   - site: epic
     type: price
     interval_hours: 6
+    currency: KRW
     enabled: false
     dry_run: true
+    products: []  # 추후 추가
 
   - site: amazon
     type: price
     interval_hours: 12
+    currency: KRW
     enabled: false
     dry_run: true
+    products: []  # 추후 추가

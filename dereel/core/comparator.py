@@ -3,6 +3,7 @@ from loguru import logger
 from dereel.core.alert_history import AlertHistory
 from dereel.core.notifier import Notifier
 from dereel.core.storage import Storage
+from dereel.models.price_result import PriceResult
 from dereel.models.stock_result import StockResult
 
 
@@ -50,4 +51,63 @@ class Comparator:
             f"📦 {result.name}\n"
             f"💰 가격: {price}\n"
             f"🔗 {result.url}"
+        )
+
+async def compare_price(
+        self,
+        site_name: str,
+        results: list["PriceResult"],
+        targets: list[dict],
+        dry_run: bool = False,
+    ) -> None:
+        """현재 가격이 목표가 이하이거나 무료 전환 시 알림을 발송한다."""
+        target_map = {str(t["app_id"]): t for t in targets}
+
+        for result in results:
+            target = target_map.get(result.product_id)
+            if target is None:
+                continue
+
+            target_price = float(target.get("target_price", 0))
+
+            if not result.should_notify(target_price):
+                continue
+
+            alert_key = f"{site_name}:{result.product_id}:price"
+            if not self._alert_history.can_alert(alert_key):
+                logger.info(f"[{site_name}] 중복 알림 스킵 — {result.name}")
+                continue
+
+            # SteamCrawler 인스턴스에서 메시지 포맷을 빌려오지 않고
+            # Comparator가 직접 공통 포맷 사용
+            message = self._format_price_message(result, target_price)
+            await self._notifier.send(message, dry_run=dry_run)
+
+            if not dry_run:
+                self._alert_history.record(alert_key)   
+
+def _format_price_message(self, result: "PriceResult", target_price: float) -> str:
+        from dereel.models.price_result import PriceResult  # 순환참조 방지
+        currency = result.currency
+        symbol = "₩" if currency == "KRW" else ""
+        fmt = lambda v: f"{symbol}{v:,.0f}{'' if symbol else ' ' + currency}"
+
+        if result.is_free:
+            price_line = "🎁 무료 전환!"
+        else:
+            price_line = (
+                f"💸 현재가: {fmt(result.current_price)}\n"
+                f"📌 원가: {fmt(result.original_price)}\n"
+                f"🎯 목표가: {fmt(target_price)}"
+            )
+
+        site_emoji = {"steam": "🎮", "gog": "🟣", "epic": "🟦"}.get(result.site, "🛒")
+        site_label = result.site.upper()
+
+        return (
+            f"{site_emoji} [{site_label} 가격 알림]\n\n"
+            f"🕹 {result.name}\n"
+            f"{price_line}\n"
+            f"🔗 {result.url}\n"
+            f"🕐 {result.fetched_at.strftime('%Y-%m-%d %H:%M')} UTC"
         )

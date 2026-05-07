@@ -10,9 +10,11 @@ from dereel.core.comparator import Comparator
 from dereel.core.notifier import Notifier
 from dereel.core.storage import JsonStorage
 from dereel.crawlers.apple_refurb import AppleRefurbCrawler
+from dereel.crawlers.steam import SteamCrawler
 
 CRAWLER_REGISTRY = {
     "apple_refurb": AppleRefurbCrawler,
+    "steam":        SteamCrawler,
 }
 
 
@@ -73,7 +75,13 @@ async def run(crawl_type: str) -> None:
             )
             continue
 
-        await comparator.compare_stock(site, results, dry_run=dry_run)
+        crawler_type = target.get("type", "stock")
+        if crawler_type == "price":
+            products = target.get("products", [])
+            await comparator.compare_price(site, results, products, dry_run=dry_run)
+        else:
+            await comparator.compare_stock(site, results, dry_run=dry_run)
+
         storage.save_crawled_at(schedule_key, datetime.now(timezone.utc))
 
     logger.info(f"[{crawl_type}] 전체 크롤링 완료 ✅")
