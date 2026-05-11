@@ -38,7 +38,7 @@ targets:
     type: price
     interval_hours: 6
     enabled: true
-    dry_run: true
+    dry_run: false
     currency: USD
     products:
       - slug: "the_secret_of_monkey_island_special_edition"
