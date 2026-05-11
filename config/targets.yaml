@@ -30,6 +30,9 @@ targets:
       - app_id: "32310"
         name: "Indiana Jones and the Last Crusade"
         target_price: 5000
+      - app_id: "2102"
+        name: "LucasArts Adventure Pack"
+        target_price: 10000
 
   - site: gog
     type: price
@@ -38,12 +41,12 @@ targets:
     dry_run: true
     currency: USD
     products:
-      - slug: "the_witcher_3_wild_hunt"
-        name: "The Witcher 3: Wild Hunt"
-        target_price: 9.99
-      - slug: "cyberpunk_2077"
-        name: "Cyberpunk 2077"
-        target_price: 19.99
+      - slug: "the_secret_of_monkey_island_special_edition"
+        name: "The Secret of Monkey Island: Special Edition"
+        target_price: 6.99
+      - slug: "kings_quest_1_2_3"
+        name: "Kings Quest 1-3"
+        target_price: 8.99
 
   - site: epic
     type: price
