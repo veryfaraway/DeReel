@@ -14,6 +14,7 @@ class Comparator:
         self._alert_history = alert_history
         self._notifier = notifier
 
+    # ── 재고 비교 (apple_refurb) ───────────────────────────────────────────
     async def compare_stock(
         self,
         site_name: str,
@@ -39,11 +40,67 @@ class Comparator:
             if not dry_run:
                 self._alert_history.record(alert_key)
 
-        # 현재 상태 저장
         new_state = {r.product_id: r.in_stock for r in current}
         self._storage.save_state(site_name, new_state)
         logger.info(f"[{site_name}] 상태 저장 완료 — {len(current)}건")
 
+    # ── 가격 비교 (steam / gog / epic …) ──────────────────────────────────
+    async def compare_price(
+        self,
+        site_name: str,
+        current: list[PriceResult],
+        products_config: list[dict],
+        dry_run: bool = False,
+    ) -> None:
+        """이전 가격과 비교해 목표가 도달 또는 무료 전환 시 알림을 발송한다."""
+        # product_id → target_price 맵 생성
+        target_map: dict[str, float] = {}
+        for p in products_config:
+            product_id = str(p.get("app_id") or p.get("product_id") or p.get("slug", ""))
+            target_map[product_id] = float(p.get("target_price", 0))
+
+        previous = self._storage.load_state(site_name)
+
+        for result in current:
+            prev_price: float = previous.get(result.product_id, float("inf"))
+            target_price = target_map.get(result.product_id, 0.0)
+
+            should_notify = (
+                result.is_free                                  # 무료 전환
+                or (
+                    result.current_price <= target_price        # 목표가 도달
+                    and prev_price > target_price               # 이전엔 목표가 초과였음
+                )
+            )
+
+            if not should_notify:
+                logger.debug(
+                    f"[{site_name}] {result.name} — "
+                    f"현재가 {result.current_price} / 목표가 {target_price} / 이전가 {prev_price} (알림 없음)"
+                )
+                continue
+
+            logger.info(f"[{site_name}] 알림 조건 충족 — {result.name} ({result.current_price})")
+
+            alert_type = "free" if result.is_free else "price"
+            alert_key = f"{site_name}:{result.product_id}:{alert_type}"
+
+            if not self._alert_history.can_alert(alert_key):
+                logger.debug(f"[{site_name}] 쿨다운 중 — {alert_key}")
+                continue
+
+            message = self._format_price_message(result, target_price)
+            await self._notifier.send(message, dry_run=dry_run)
+
+            if not dry_run:
+                self._alert_history.record(alert_key)
+
+        # 현재 가격 상태 저장
+        new_state = {r.product_id: r.current_price for r in current}
+        self._storage.save_state(site_name, new_state)
+        logger.info(f"[{site_name}] 가격 상태 저장 완료 — {len(current)}건")
+
+    # ── 메시지 포맷 ────────────────────────────────────────────────────────
     def _format_stock_message(self, result: StockResult) -> str:
         price = f"₩{result.price:,}" if result.currency == "KRW" else f"{result.price:,} {result.currency}"
         return (
@@ -53,61 +110,28 @@ class Comparator:
             f"🔗 {result.url}"
         )
 
-async def compare_price(
-        self,
-        site_name: str,
-        results: list["PriceResult"],
-        targets: list[dict],
-        dry_run: bool = False,
-    ) -> None:
-        """현재 가격이 목표가 이하이거나 무료 전환 시 알림을 발송한다."""
-        target_map = {str(t["app_id"]): t for t in targets}
-
-        for result in results:
-            target = target_map.get(result.product_id)
-            if target is None:
-                continue
-
-            target_price = float(target.get("target_price", 0))
-
-            if not result.should_notify(target_price):
-                continue
-
-            alert_key = f"{site_name}:{result.product_id}:price"
-            if not self._alert_history.can_alert(alert_key):
-                logger.info(f"[{site_name}] 중복 알림 스킵 — {result.name}")
-                continue
-
-            # SteamCrawler 인스턴스에서 메시지 포맷을 빌려오지 않고
-            # Comparator가 직접 공통 포맷 사용
-            message = self._format_price_message(result, target_price)
-            await self._notifier.send(message, dry_run=dry_run)
-
-            if not dry_run:
-                self._alert_history.record(alert_key)   
-
-def _format_price_message(self, result: "PriceResult", target_price: float) -> str:
-        from dereel.models.price_result import PriceResult  # 순환참조 방지
-        currency = result.currency
-        symbol = "₩" if currency == "KRW" else ""
-        fmt = lambda v: f"{symbol}{v:,.0f}{'' if symbol else ' ' + currency}"
+    def _format_price_message(self, result: PriceResult, target_price: float) -> str:
+        symbol = "₩" if result.currency == "KRW" else ("$" if result.currency == "USD" else "")
+        suffix = "" if symbol else f" {result.currency}"
 
         if result.is_free:
             price_line = "🎁 무료 전환!"
         else:
+            discount_pct = (
+                round((1 - result.current_price / result.original_price) * 100)
+                if result.original_price > 0 else 0
+            )
             price_line = (
-                f"💸 현재가: {fmt(result.current_price)}\n"
-                f"📌 원가: {fmt(result.original_price)}\n"
-                f"🎯 목표가: {fmt(target_price)}"
+                f"💸 현재가: {symbol}{result.current_price:,.2f}{suffix}"
+                + (f" ({discount_pct}% 할인)" if discount_pct > 0 else "") + "\n"
+                f"📌 원가:   {symbol}{result.original_price:,.2f}{suffix}\n"
+                f"🎯 목표가: {symbol}{target_price:,.2f}{suffix}"
             )
 
-        site_emoji = {"steam": "🎮", "gog": "🟣", "epic": "🟦"}.get(result.site, "🛒")
-        site_label = result.site.upper()
-
+        site_label = {"steam": "Steam", "gog": "GOG", "epic": "Epic Games"}.get(result.site, result.site)
         return (
-            f"{site_emoji} [{site_label} 가격 알림]\n\n"
+            f"🎮 [{site_label} 가격 알림]\n\n"
             f"🕹 {result.name}\n"
             f"{price_line}\n"
-            f"🔗 {result.url}\n"
-            f"🕐 {result.fetched_at.strftime('%Y-%m-%d %H:%M')} UTC"
+            f"🔗 {result.url}"
         )
