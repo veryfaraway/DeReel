@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 
 import yaml
@@ -18,7 +19,7 @@ CRAWLER_REGISTRY = {
 }
 
 
-async def run() -> None:
+async def run(type_filter: str | None = None) -> None:
     with open("config/targets.yaml") as f:
         config = yaml.safe_load(f)
 
@@ -29,9 +30,14 @@ async def run() -> None:
 
     for target in config["targets"]:
         site = target["site"]
-        target_type = target.get("type", "stock")   # 기본값 stock
+        target_type = target.get("type", "stock")
         dry_run = target.get("dry_run", False)
         enabled = target.get("enabled", True)
+
+        # --type 인자로 필터링
+        if type_filter and target_type != type_filter:
+            logger.debug(f"[{site}] type={target_type} — '{type_filter}' 필터로 스킵")
+            continue
 
         if not enabled:
             logger.debug(f"[{site}] 비활성화 — 스킵")
@@ -65,5 +71,18 @@ async def run() -> None:
     logger.info("전체 크롤링 완료 ✅")
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="DeReel 크롤러")
+    parser.add_argument(
+        "--type",
+        dest="type_filter",
+        choices=["stock", "price"],
+        default=None,
+        help="실행할 타겟 타입 (stock / price). 생략하면 전체 실행.",
+    )
+    args = parser.parse_args()
+    asyncio.run(run(type_filter=args.type_filter))
+
+
 if __name__ == "__main__":
-    asyncio.run(run())
+    main()
