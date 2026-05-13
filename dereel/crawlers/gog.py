@@ -3,14 +3,12 @@ from loguru import logger
 from dereel.core.base_crawler import BaseCrawler
 from dereel.models.price_result import PriceResult
 
-CATALOG_URL = "https://catalog.gog.com/v1/catalog"
+PRICES_URL  = "https://api.gog.com/products/{product_id}/prices"
+PRODUCT_URL = "https://api.gog.com/products/{product_id}"
 
 CURRENCY_TO_CC: dict[str, str] = {
-    "USD": "US",
-    "EUR": "DE",
-    "GBP": "GB",
-    "JPY": "JP",
-    "KRW": "KR",
+    "USD": "US", "EUR": "DE", "GBP": "GB",
+    "JPY": "JP", "KRW": "KR",
 }
 
 
@@ -19,7 +17,6 @@ class GogCrawler(BaseCrawler):
     site_name = "gog"
 
     async def fetch(self, url: str) -> list[PriceResult]:
-        """BaseCrawler.fetch() 시그니처 준수용 — 실제 진입점은 fetch_products()."""
         return []
 
     async def fetch_products(
@@ -31,9 +28,9 @@ class GogCrawler(BaseCrawler):
         results: list[PriceResult] = []
 
         for product in products:
-            slug = product["slug"]
+            product_id = str(product["product_id"])
             name = product["name"]
-            result = await self._fetch_one(slug, name, currency, cc)
+            result = await self._fetch_one(product_id, name, currency, cc)
             if result:
                 results.append(result)
 
@@ -41,72 +38,66 @@ class GogCrawler(BaseCrawler):
 
     async def _fetch_one(
         self,
-        slug: str,
+        product_id: str,
         name: str,
         currency: str,
         cc: str,
     ) -> PriceResult | None:
         try:
             resp = await self._client.get(
-                CATALOG_URL,
-                params={
-                    "slugs": slug,
-                    "limit": 1,
-                    "productType": "in:game",
-                    "countryCode": cc,
-                    "currencyCode": currency.upper(),
-                },
+                PRICES_URL.format(product_id=product_id),
+                params={"countryCode": cc},
                 headers={"Accept": "application/json"},
             )
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
-            logger.error(f"[gog] {name}({slug}) 요청 실패 — {e}")
+            logger.error(f"[gog] {name}({product_id}) 가격 요청 실패 — {e}")
             return None
 
-        products = data.get("products", [])
+        prices = data.get("_embedded", {}).get("prices", [])
+        target_currency = currency.upper()
 
-        # slug 정확히 일치하는 항목 탐색
-        matched = next((p for p in products if p.get("slug") == slug), None)
+        # 요청한 통화 매칭
+        price_entry = next(
+            (p for p in prices if p["currency"]["code"] == target_currency),
+            prices[0] if prices else None,
+        )
 
-        if matched is None:
-            logger.warning(f"[gog] {name}({slug}) — 일치하는 상품 없음")
+        if price_entry is None:
+            logger.warning(f"[gog] {name}({product_id}) — 가격 정보 없음")
             return None
 
-        price_data = matched.get("price")
-        product_id = str(matched["id"])
-        store_url = f"https://www.gog.com/game/{slug}"
+        # "999 USD" → 9.99
+        original = self._parse_price(price_entry["basePrice"])
+        current  = self._parse_price(price_entry["finalPrice"])
+        store_url = f"https://www.gog.com/en/game/{product_id}"
 
-        # 무료 게임 (price 없음)
-        if price_data is None:
-            logger.info(f"[gog] {name}({slug}) — 무료 게임 감지")
+        # 무료 게임
+        if current == 0:
+            logger.info(f"[gog] {name}({product_id}) — 무료 게임 감지")
             return PriceResult(
-                site="gog",
-                product_id=product_id,
-                name=name,
-                original_price=0.0,
-                current_price=0.0,
-                currency=currency.upper(),
-                url=store_url,
+                site="gog", product_id=product_id, name=name,
+                original_price=0.0, current_price=0.0,
+                currency=target_currency, url=store_url,
             )
 
-        original = float(price_data["baseMoney"]["amount"])
-        current = float(price_data["finalMoney"]["amount"])
-
         logger.info(
-            f"[gog] {name}({slug}) — "
+            f"[gog] {name}({product_id}) — "
             f"원가: {original} {currency} / 현재가: {current} {currency}"
         )
 
         return PriceResult(
-            site="gog",
-            product_id=product_id,
-            name=name,
-            original_price=original,
-            current_price=current,
-            currency=currency.upper(),
-            url=store_url,
+            site="gog", product_id=product_id, name=name,
+            original_price=original, current_price=current,
+            currency=target_currency, url=store_url,
         )
+
+    @staticmethod
+    def _parse_price(price_str: str) -> float:
+        """'999 USD' → 9.99, '0 USD' → 0.0"""
+        amount_cents = int(price_str.split()[0])
+        return round(amount_cents / 100, 2)
 
     def format_message(self, result: PriceResult, target_price: float) -> str:
         symbol = "$" if result.currency == "USD" else ""
