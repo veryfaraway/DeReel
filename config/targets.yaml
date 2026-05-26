@@ -24,15 +24,16 @@ targets:
       - app_id: "32360"
         name: "The Secret of Monkey Island: Special Edition"
         target_price: 5000
-      - app_id: "6588"
+      - package_id: "6588"
         name: "Monkey Island Collection"
         target_price: 20000
       - app_id: "32310"
         name: "Indiana Jones and the Last Crusade"
         target_price: 5000
-      - app_id: "2102"
+      - package_id: "2102"
         name: "LucasArts Adventure Pack"
         target_price: 10000
+
 
   - site: gog
     type: price

@@ -139,3 +139,67 @@ def test_format_message_free():
     )
     msg = crawler_sync.format_message(result, target_price=0)
     assert "무료" in msg
+
+
+# ── Package ID 및 Fallback 테스트 ────────────────────────────────────────────────
+MOCK_API_RESPONSE_PACKAGE = {
+    "6588": {
+        "success": True,
+        "data": {
+            "price_overview": {
+                "currency": "KRW",
+                "initial": 2000000,
+                "final": 1000000,
+                "discount_percent": 50,
+            }
+        },
+    }
+}
+
+
+@pytest.mark.asyncio
+async def test_fetch_package_id_directly(crawler):
+    """package_id가 지정된 경우 처음부터 패키지 API를 바로 찌른다."""
+    products = [{"package_id": "6588", "name": "Monkey Island Collection", "target_price": 20000}]
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = MOCK_API_RESPONSE_PACKAGE
+
+    crawler._client.get = AsyncMock(return_value=mock_resp)
+
+    results = await crawler.fetch_products(products, currency="KRW")
+
+    assert len(results) == 1
+    assert results[0].product_id == "6588"
+    assert results[0].original_price == 20000.0
+    assert results[0].current_price == 10000.0
+    assert results[0].url == "https://store.steampowered.com/sub/6588"
+
+
+@pytest.mark.asyncio
+async def test_fetch_app_id_fallback_to_package(crawler):
+    """app_id로 기입했으나 app API가 실패할 때 package API로 우회 작동(Fallback)한다."""
+    products = [{"app_id": "6588", "name": "Monkey Island Collection", "target_price": 20000}]
+
+    # 1차 appdetails 실패 응답
+    mock_resp_fail = MagicMock()
+    mock_resp_fail.raise_for_status = MagicMock()
+    mock_resp_fail.json.return_value = {"6588": {"success": False}}
+
+    # 2차 packagedetails 성공 응답
+    mock_resp_success = MagicMock()
+    mock_resp_success.raise_for_status = MagicMock()
+    mock_resp_success.json.return_value = MOCK_API_RESPONSE_PACKAGE
+
+    # 1차 호출 시 fail, 2차 호출 시 success 반환하도록 세팅
+    crawler._client.get = AsyncMock(side_effect=[mock_resp_fail, mock_resp_success])
+
+    results = await crawler.fetch_products(products, currency="KRW")
+
+    assert len(results) == 1
+    assert results[0].product_id == "6588"
+    assert results[0].original_price == 20000.0
+    assert results[0].current_price == 10000.0
+    assert results[0].url == "https://store.steampowered.com/sub/6588"
+

@@ -56,7 +56,7 @@ class Comparator:
         # product_id → target_price 맵 생성
         target_map: dict[str, float] = {}
         for p in products_config:
-            product_id = str(p.get("app_id") or p.get("product_id") or p.get("slug", ""))
+            product_id = str(p.get("app_id") or p.get("package_id") or p.get("product_id") or p.get("slug", ""))
             target_map[product_id] = float(p.get("target_price", 0))
 
         previous = self._storage.load_state(site_name)
