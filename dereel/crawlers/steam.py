@@ -112,7 +112,7 @@ class SteamCrawler(BaseCrawler):
             logger.warning(f"[steam] {name}({package_id}) Package API success=false")
             return None
 
-        price_data = entry.get("data", {}).get("price_overview")
+        price_data = entry.get("data", {}).get("price")
         return self._build_price_result(package_id, name, price_data, currency, is_package=True)
 
     def _build_price_result(

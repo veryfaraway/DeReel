@@ -146,7 +146,7 @@ MOCK_API_RESPONSE_PACKAGE = {
     "6588": {
         "success": True,
         "data": {
-            "price_overview": {
+            "price": {
                 "currency": "KRW",
                 "initial": 2000000,
                 "final": 1000000,
