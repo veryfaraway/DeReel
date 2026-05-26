@@ -7,7 +7,8 @@ from loguru import logger
 from dereel.core.alert_history import AlertHistory
 from dereel.core.comparator import Comparator
 from dereel.core.notifier import Notifier
-from dereel.core.storage import JsonStorage
+from dereel.core.storage import get_storage
+from dereel.core.settings import settings
 from dereel.crawlers.apple_refurb import AppleRefurbCrawler
 from dereel.crawlers.gog import GogCrawler
 from dereel.crawlers.steam import SteamCrawler
@@ -23,10 +24,11 @@ async def run(type_filter: str | None = None) -> None:
     with open("config/targets.yaml") as f:
         config = yaml.safe_load(f)
 
-    storage = JsonStorage()
+    storage = get_storage(settings.storage_type, data_dir=settings.data_dir)
     alert_history = AlertHistory(storage)
     notifier = Notifier()
     comparator = Comparator(storage, alert_history, notifier)
+
 
     for target in config["targets"]:
         site = target["site"]
@@ -61,12 +63,22 @@ async def run(type_filter: str | None = None) -> None:
                     results = await crawler.fetch_products(products, currency=currency)
                     await comparator.compare_price(site, results, products, dry_run=dry_run)
 
+            # 성공 시 장애 카운트 즉시 리셋
+            storage.reset_failures(site)
+
         except Exception as e:
-            logger.error(f"[{site}] 크롤링 실패 — {e}")
-            await notifier.send(
-                f"🚨 [{site}] 크롤링 실패\n\n❗ {e}",
-                dry_run=dry_run,
-            )
+            failures_count = storage.increment_failures(site, str(e))
+            logger.error(f"[{site}] 크롤링 실패 ({failures_count}회 연속) — {e}")
+
+            # 연속 3회 실패 시에만 Telegram 장애 경보 발송
+            if failures_count >= 3:
+                await notifier.send(
+                    f"🚨 [DeReel 경보] 크롤러 연속 실패\n\n"
+                    f"🌐 사이트: {site}\n"
+                    f"💥 오류: {e}\n"
+                    f"🔁 연속 실패 횟수: {failures_count}회",
+                    dry_run=dry_run,
+                )
 
     logger.info("전체 크롤링 완료 ✅")
 

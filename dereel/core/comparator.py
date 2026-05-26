@@ -2,7 +2,7 @@ from loguru import logger
 
 from dereel.core.alert_history import AlertHistory
 from dereel.core.notifier import Notifier
-from dereel.core.storage import Storage
+from dereel.core.base_storage import Storage
 from dereel.models.price_result import PriceResult
 from dereel.models.stock_result import StockResult
 
@@ -85,7 +85,7 @@ class Comparator:
             alert_type = "free" if result.is_free else "price"
             alert_key = f"{site_name}:{result.product_id}:{alert_type}"
 
-            if not self._alert_history.can_alert(alert_key):
+            if not self._alert_history.can_alert(alert_key, current_price=result.current_price):
                 logger.debug(f"[{site_name}] 쿨다운 중 — {alert_key}")
                 continue
 
@@ -93,7 +93,7 @@ class Comparator:
             await self._notifier.send(message, dry_run=dry_run)
 
             if not dry_run:
-                self._alert_history.record(alert_key)
+                self._alert_history.record(alert_key, current_price=result.current_price)
 
         # 현재 가격 상태 저장
         new_state = {r.product_id: r.current_price for r in current}

@@ -12,6 +12,8 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
     data_dir: str = "./data"
+    storage_type: str = "json"
+
 
 
 settings = Settings()
