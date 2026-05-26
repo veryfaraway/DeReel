@@ -99,7 +99,8 @@ from datetime import datetime, timezone, timedelta
 COOLDOWN_HOURS = 24  # 기본값 (targets.yaml에서 오버라이드 가능)
 
 def can_send(site: str, product_id: str, alert_type: str,
-             cooldown_hours: int = COOLDOWN_HOURS) -> bool:
+             cooldown_hours: int = COOLDOWN_HOURS,
+             current_price: int | None = None) -> bool:
     """
     반환값:
       True  → 발송 가능
@@ -111,14 +112,21 @@ def can_send(site: str, product_id: str, alert_type: str,
     if record is None:
         return True  # 최초 알림
 
+    # 가격 알림(price/discount)인 경우, 현재 가격이 마지막으로 알림 보낸 가격보다 낮다면 쿨다운을 우회하여 즉시 발송
+    if current_price is not None and record.get("last_alerted_price") is not None:
+        if current_price < record["last_alerted_price"]:
+            logger.info(f"가격 추가 하락 감지 (직전 {record['last_alerted_price']} -> 현재 {current_price}). 쿨다운을 우회합니다.")
+            return True
+
     last_sent = datetime.fromisoformat(record["last_sent_at"])
     elapsed = datetime.now(timezone.utc) - last_sent
     return elapsed >= timedelta(hours=cooldown_hours)
 
-def record_sent(site: str, product_id: str, alert_type: str) -> None:
+def record_sent(site: str, product_id: str, alert_type: str, current_price: int | None = None) -> None:
     key = f"{site}:{product_id}:{alert_type}"
     history[key] = {
         "last_sent_at": datetime.now(timezone.utc).isoformat(),
+        "last_alerted_price": current_price,
         "send_count": history.get(key, {}).get("send_count", 0) + 1,
     }
     storage.save_alert_history(history)
@@ -422,7 +430,8 @@ async def process_price_alert(
     for alert_type in alert_types:
         # 2단계: 중복 방지
         if not can_send(current.site, current.product_id, alert_type,
-                        config.get("alert_cooldown_hours", 24)):
+                        config.get("alert_cooldown_hours", 24),
+                        current_price=current.price):
             logger.warning(f"알림 스킵 - 중복: {current.name} [{alert_type}]")
             continue
 
@@ -434,7 +443,7 @@ async def process_price_alert(
 
         # 5단계: 이력 저장
         if success:
-            record_sent(current.site, current.product_id, alert_type)
+            record_sent(current.site, current.product_id, alert_type, current_price=current.price)
 ```
 
 ---

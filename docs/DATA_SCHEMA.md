@@ -78,11 +78,11 @@ class PriceResult:
     site: str           # 사이트 식별자 (예: "steam", "coupang")
     product_id: str     # 사이트 내 고유 식별자
     name: str           # 제품명
-    price: int          # 현재 가격 (원화 환산, 원 단위 정수)
-    original_price: int # 정가 (할인 전, 원화)
+    price: int          # 현재 가격 (현지 통화 기준, 정수)
+    original_price: int # 정가 (할인 전, 현지 통화 기준)
     discount_pct: float # 할인율 (0.0 ~ 100.0)
     currency: str       # 원본 통화 코드
-    original_amount: int  # 원본 통화 기준 가격 (환율 적용 전)
+    original_amount: int  # 원본 통화 기준 가격 (price와 동일)
     url: str            # 상품 페이지 URL
     fetched_at: datetime
     is_free: bool = False        # 무료 배포 여부 (Epic 무료 게임 등)
@@ -206,10 +206,12 @@ Phase 1에서는 상태를 `data/` 디렉토리의 JSON 파일로 관리하며,
 {
   "apple_refurb:MQTP3KH/A:stock": {
     "last_sent_at": "2026-03-31T06:12:00Z",
+    "last_alerted_price": null,
     "send_count": 3
   },
   "steam:1245620:price": {
     "last_sent_at": "2026-03-30T09:00:00Z",
+    "last_alerted_price": 15000,
     "send_count": 1
   }
 }
@@ -231,16 +233,22 @@ alert_type 값:
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `last_sent_at` | ISO 8601 string | 마지막 발송 시각 (UTC) |
+| `last_alerted_price` | integer | null | 마지막 알림 발송 당시 가격 (재고 알림 등 해당 없으면 null) |
 | `send_count` | integer | 누적 발송 횟수 |
 
 **중복 방지 판단 로직**
 ```python
 from datetime import datetime, timezone, timedelta
 
-def can_send(alert_key: str) -> bool:
+def can_send(alert_key: str, current_price: int | None = None) -> bool:
     record = alert_history.get(alert_key)
     if record is None:
         return True  # 최초 알림
+
+    # 가격 하락 알림이고, 현재 가격이 마지막 알림 발송 당시 가격보다 낮다면 쿨다운 우회 발송
+    if current_price is not None and record.get("last_alerted_price") is not None:
+        if current_price < record["last_alerted_price"]:
+            return True
 
     last_sent = datetime.fromisoformat(record["last_sent_at"])
     elapsed = datetime.now(timezone.utc) - last_sent
@@ -523,7 +531,7 @@ crawlers:
     products:
       - product_id: "B09V3KXJPB"
         name: "AirPods Pro (2세대) JP"
-        target_price: 25000    # 원화 환산 기준
+        target_price: 30000    # 현지 통화(JPY) 기준 (원화 환산 X)
         alert_threshold: null
 
 # ── 알림 설정 ────────────────────────────────────

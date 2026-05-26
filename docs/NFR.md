@@ -163,14 +163,16 @@
 - 요청 간 최소 딜레이: `random.uniform(3.0, 8.0)` 초 적용
 - `robots.txt` Disallow 경로 접근 금지
 - 수집 데이터 상업적 재판매 금지 (개인 사용 및 오픈소스 교육 목적에 한정)
+- **현지 통화 기준 목표가 준수:** 다중 통화(Multi-Currency) 대상 사이트(예: Amazon US/JP 등)를 크롤링할 경우, 환율 변동에 의한 오작동을 막기 위해 목표 가격(`target_price`)을 원화 환산 금액이 아닌 사이트별 **현지 통화(Local Currency) 기준 정수**로 기입하여 수집 가격과 직접 1:1 비교한다.
 
 ---
 
 ## 8. 관찰 가능성 (Observability)
 
-### 8.1 Phase 1 (GitHub Actions 로그)
+### 8.1 Phase 1 (GitHub Actions 로그 & 상태 파일 감시)
 - 워크플로 실행 로그를 GitHub Actions 탭에서 확인
 - 실패 시 GitHub 계정 이메일로 자동 알림
+- **연속 장애 자동 전파:** `data/crawl_schedule.json`에서 누적된 연속 장애 횟수가 **3회**를 달성할 경우, Telegram 봇을 통해 장애 전파 경보 메시지(`error` 타입)를 개발자 채널로 즉시 발송
 
 ### 8.2 Phase 2 이후 (AWS CloudWatch)
 - Lambda 실행 로그 → CloudWatch Logs 자동 수집
@@ -184,3 +186,4 @@
 | 버전 | 날짜 | 내용 | 작성자 |
 |---|---|---|---|
 | v0.1.0 | 2026-03-30 | 최초 초안 작성 | 한섭 |
+| v0.1.1 | 2026-05-26 | 현지 통화 목표가 원칙 추가, GHA 연속 에러 알림 구조 명시 | 한섭 |

@@ -307,11 +307,56 @@ run.py
 8. GHA가 data/ 변경사항 자동 커밋
 ```
 
+## 6. 아키텍처 보완 설계 (Phase 1 피드백 반영)
+
+### 6.1 Storage 추상화 계층 (Interface) 도입
+Phase 1(JSON 파일)에서 Phase 2(DynamoDB / S3)로 전환될 때 핵심 모듈(`Comparator`, `run.py`)의 비즈니스 로직을 변경하지 않고 저장소 엔진만 교체할 수 있도록 공통 `StorageInterface` 추상 클래스를 설계한다.
+
+```python
+# dereel/core/base_storage.py
+from abc import ABC, abstractmethod
+
+class BaseStorage(ABC):
+    @abstractmethod
+    def load_state(self, site: str) -> dict: ...
+    @abstractmethod
+    def save_state(self, site: str, state: dict) -> None: ...
+    @abstractmethod
+    def load_alert_history(self) -> dict: ...
+    @abstractmethod
+    def save_alert_history(self, history: dict) -> None: ...
+```
+
+* **Phase 1:** `BaseStorage`를 상속받은 `JSONFileStorage` 구현 (`data/` 디렉토리 파일 I/O 및 GHA 커밋 연동)
+* **Phase 2:** `BaseStorage`를 상속받은 `DynamoDBStorage` 구현 (`boto3` 라이브러리로 AWS 리소스 I/O)
+* **설정 주입:** 환경변수 `DEREEL_STORAGE_TYPE` (값: `json` | `dynamodb`)에 따라 팩토리 패턴을 통해 동적 주입
+
+### 6.2 Phase 1 연속 장애 감지 (Consecutive Failures Count)
+NFR 규격의 "연속 3회 크롤링 실패 시 알림" 조건을 별도의 외부 인프라(CloudWatch)가 없는 Phase 1 상태에서도 지원하기 위해, `data/crawl_schedule.json` 스키마 내에 사이트별 연속 장애 카운트(`consecutive_failures`)를 기록하고 추적한다.
+
+```json
+// data/crawl_schedule.json
+{
+  "schedules": {
+    "apple_refurb:https://...": 1746380940.603
+  },
+  "failures": {
+    "apple_refurb": {
+      "consecutive_failures": 3,
+      "last_error_message": "HTTP 502 Bad Gateway"
+    }
+  }
+}
+```
+* 크롤러 성공 시 `consecutive_failures`를 0으로 리셋한다.
+* 크롤러 실패 시 값을 1씩 누적 증가시키며, 값이 **3**에 도달하는 순간 즉시 Telegram으로 `error` 유형 경보를 발송하여 개발자에게 비상 장애 상황을 전파한다.
+
 ---
 
-## 6. 변경 이력
+## 7. 변경 이력
 
 | 버전 | 날짜 | 내용 | 작성자 |
 |---|---|---|---|
 | v0.1.0 | 2026-03-31 | 최초 초안 작성 | 한섭 |
 | v0.2.0 | 2026-05-05 | interval_hours 스케줄 구조 반영, Storage 파일 구조 업데이트, Phase 1-B 아키텍처 추가 | 한섭 |
+| v0.3.0 | 2026-05-26 | Storage 추상화 설계, 연속 에러 추적 구조, Git 동시 실행 동기화 등 보완 사양 반영 | 한섭 |

@@ -11,6 +11,11 @@ on:
     - cron: '0 */4 * * *'    # 4시간마다 (0시, 4시, 8시, 12시, 16시, 20시 UTC)
   workflow_dispatch:           # 수동 실행 (테스트 용도)
 
+# 동시 실행 시 git push 충돌을 방지하기 위해 순차 실행 보장
+concurrency:
+  group: dereel-crawlers
+  cancel-in-progress: false
+
 jobs:
   crawl:
     runs-on: ubuntu-latest
@@ -39,8 +44,7 @@ jobs:
           git config user.name "DeReel Bot"
           git config user.email "bot@dereel"
           git add data/
-          git diff --staged --quiet || git commit -m "chore: update stock state [skip ci]"
-          git push
+          git diff --staged --quiet || (git commit -m "chore: update stock state [skip ci]" && git pull --rebase origin main && git push)
 ```
 
 ### 4.3 crawl_price.yml
@@ -52,6 +56,11 @@ on:
   schedule:
     - cron: '0 */3 * * *'    # 3시간마다
   workflow_dispatch:
+
+# 동시 실행 시 git push 충돌을 방지하기 위해 순차 실행 보장
+concurrency:
+  group: dereel-crawlers
+  cancel-in-progress: false
 
 jobs:
   crawl:
@@ -83,8 +92,7 @@ jobs:
           git config user.name "DeReel Bot"
           git config user.email "bot@dereel"
           git add data/
-          git diff --staged --quiet || git commit -m "chore: update price state [skip ci]"
-          git push
+          git diff --staged --quiet || (git commit -m "chore: update price state [skip ci]" && git pull --rebase origin main && git push)
 ```
 
 ### 4.4 crawl_amazon.yml
@@ -96,6 +104,11 @@ on:
   schedule:
     - cron: '0 */6 * * *'    # 6시간마다
   workflow_dispatch:
+
+# 동시 실행 시 git push 충돌을 방지하기 위해 순차 실행 보장
+concurrency:
+  group: dereel-crawlers
+  cancel-in-progress: false
 
 jobs:
   crawl:
@@ -128,8 +141,7 @@ jobs:
           git config user.name "DeReel Bot"
           git config user.email "bot@dereel"
           git add data/
-          git diff --staged --quiet || git commit -m "chore: update amazon state [skip ci]"
-          git push
+          git diff --staged --quiet || (git commit -m "chore: update amazon state [skip ci]" && git pull --rebase origin main && git push)
 ```
 
 ---
