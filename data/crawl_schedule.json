@@ -1,6 +1,9 @@
 {
-  "apple_refurb:https://www.apple.com/kr/shop/refurbished/ipad": 1778070208.768335,
-  "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1778070215.484579,
-  "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1778452544.385123,
-  "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1778452546.916801
+  "schedules": {
+    "apple_refurb:https://www.apple.com/kr/shop/refurbished/ipad": 1778070208.768335,
+    "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1778070215.484579,
+    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1779978456.619237,
+    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1779978458.882638
+  },
+  "failures": {}
 }
