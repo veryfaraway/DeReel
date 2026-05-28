@@ -157,28 +157,25 @@ MOCK_API_RESPONSE_PACKAGE = {
 }
 
 
-MOCK_API_RESPONSE_BUNDLE = {
-    "6588": {
-        "success": True,
-        "data": {
-            "name": "Monkey Island Collection",
-            "bundleid": 6588,
-            "original_price": 2000000,
-            "final_price": 1000000,
-            "discount_percent": 50,
-        },
-    }
-}
+MOCK_BUNDLE_HTML = """
+<div data-ds-bundleid="6588"
+     data-ds-bundle-data='{"m_rgItems": [{"m_nBasePriceInCents": 1000000}, {"m_nBasePriceInCents": 1000000}]}'>
+  <div class="game_purchase_discount"
+       data-price-final="1000000" data-bundlediscount="50" data-discount="0"></div>
+</div>
+"""
+
+MOCK_BUNDLE_HTML_FAILURE = "<html><body></body></html>"
 
 
 @pytest.mark.asyncio
 async def test_fetch_bundle_id_directly(crawler):
-    """bundle_id가 지정된 경우 번들 API를 직접 조회한다."""
+    """bundle_id가 지정된 경우 번들 스토어 페이지를 스크래핑한다."""
     products = [{"bundle_id": "6588", "name": "Monkey Island Collection", "target_price": 20000}]
 
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = MOCK_API_RESPONSE_BUNDLE
+    mock_resp.text = MOCK_BUNDLE_HTML
 
     crawler._client.get = AsyncMock(return_value=mock_resp)
 
@@ -193,12 +190,12 @@ async def test_fetch_bundle_id_directly(crawler):
 
 @pytest.mark.asyncio
 async def test_fetch_bundle_returns_empty_on_api_failure(crawler):
-    """bundle API가 success=false를 반환하면 결과가 없다."""
+    """번들 페이지에 bundle div가 없으면 결과가 없다."""
     products = [{"bundle_id": "9999", "name": "Ghost Bundle", "target_price": 0}]
 
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
-    mock_resp.json.return_value = {"9999": {"success": False}}
+    mock_resp.text = MOCK_BUNDLE_HTML_FAILURE
 
     crawler._client.get = AsyncMock(return_value=mock_resp)
 

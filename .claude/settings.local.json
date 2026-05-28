@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(xargs ls -la)",
-      "Bash(uv run *)"
+      "Bash(uv run *)",
+      "Bash(curl -s \"https://store.steampowered.com/bundle/6588/?cc=kr&l=english\" -H \"Accept-Language: en-US\")",
+      "Bash(curl -sI \"https://store.steampowered.com/bundle/6588/?cc=kr\" -H \"Accept-Language: en-US\")"
     ]
   }
 }

@@ -1,6 +1,8 @@
 # dereel/crawlers/steam.py
+import json
 from typing import Any
 
+from bs4 import BeautifulSoup
 from loguru import logger
 
 from dereel.core.base_crawler import BaseCrawler
@@ -8,7 +10,7 @@ from dereel.models.price_result import PriceResult
 
 STEAM_API_URL = "https://store.steampowered.com/api/appdetails"
 STEAM_PACKAGE_API_URL = "https://store.steampowered.com/api/packagedetails"
-STEAM_BUNDLE_API_URL = "https://store.steampowered.com/api/bundledetails"
+STEAM_BUNDLE_STORE_URL = "https://store.steampowered.com/bundle"
 
 
 CURRENCY_TO_CC: dict[str, str] = {
@@ -132,33 +134,42 @@ class SteamCrawler(BaseCrawler):
         currency: str,
         cc: str,
     ) -> PriceResult | None:
-        """번들(Bundle ID) 상세 정보를 조회한다."""
+        """번들(Bundle ID) 스토어 페이지를 스크래핑하여 가격을 조회한다.
+        /api/bundledetails는 403을 반환하므로 HTML 파싱 방식을 사용한다."""
+        url = f"{STEAM_BUNDLE_STORE_URL}/{bundle_id}/"
         try:
-            resp = await self._client.get(
-                STEAM_BUNDLE_API_URL,
-                params={"bundleids": bundle_id, "cc": cc},
-            )
+            resp = await self._client.get(url, params={"cc": cc, "l": "english"})
             resp.raise_for_status()
-            data = resp.json()
+            html = resp.text
         except Exception as e:
-            logger.error(f"[steam] {name}({bundle_id}) Bundle 요청 실패 — {e}")
+            logger.error(f"[steam] {name}({bundle_id}) Bundle 페이지 요청 실패 — {e}")
             return None
 
-        entry = data.get(bundle_id, {})
-        if not entry.get("success"):
-            logger.warning(f"[steam] {name}({bundle_id}) Bundle API success=false")
+        soup = BeautifulSoup(html, "html.parser")
+        bundle_div = soup.find("div", {"data-ds-bundleid": bundle_id})
+        if bundle_div is None:
+            logger.warning(f"[steam] {name}({bundle_id}) Bundle 데이터 div 미발견")
             return None
 
-        bundle_data = entry.get("data", {})
-        if not bundle_data.get("final_price") and not bundle_data.get("original_price"):
-            price_data = None
-        else:
-            # Bundle API는 Package와 달리 data 레벨에 직접 가격 필드를 반환
-            price_data = {
-                "initial": bundle_data.get("original_price", 0),
-                "final": bundle_data.get("final_price", 0),
-                "discount_percent": bundle_data.get("discount_percent", 0),
-            }
+        try:
+            items = json.loads(str(bundle_div.get("data-ds-bundle-data", "{}"))).get("m_rgItems", [])
+            original_cents = sum(item.get("m_nBasePriceInCents", 0) for item in items)
+        except (json.JSONDecodeError, AttributeError) as e:
+            logger.error(f"[steam] {name}({bundle_id}) Bundle 데이터 파싱 실패 — {e}")
+            return None
+
+        price_div = bundle_div.find(attrs={"data-price-final": True})
+        if price_div is None:
+            logger.warning(f"[steam] {name}({bundle_id}) data-price-final 미발견")
+            return None
+
+        final_cents = int(str(price_div["data-price-final"]))
+        discount_pct = int(str(price_div.get("data-bundlediscount", "0")))
+
+        price_data: dict[str, Any] | None = (
+            None if original_cents == 0 and final_cents == 0
+            else {"initial": original_cents, "final": final_cents, "discount_percent": discount_pct}
+        )
         return self._build_price_result(bundle_id, name, price_data, currency, product_type="bundle")
 
     def _build_price_result(
