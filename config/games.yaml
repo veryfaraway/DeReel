@@ -1,19 +1,4 @@
-# config/targets.yaml
 targets:
-  - site: apple_refurb
-    type: stock
-    interval_hours: 4
-    url: "https://www.apple.com/shop/refurbished/airpods"
-    enabled: true
-    dry_run: false
-
-  - site: apple_refurb
-    type: stock
-    interval_hours: 4
-    url: "https://www.apple.com/kr/shop/refurbished/airpods"
-    enabled: true
-    dry_run: false
-
   - site: steam
     type: price
     interval_hours: 3
@@ -34,13 +19,12 @@ targets:
         name: "LucasArts Adventure Pack"
         target_price: 10000
 
-
   - site: gog
     type: price
     interval_hours: 6
+    currency: USD
     enabled: true
     dry_run: false
-    currency: USD
     products:
       - product_id: "1207666253"
         name: "The Secret of Monkey Island™: Special Edition"
@@ -49,7 +33,7 @@ targets:
         name: "King's Quest 1+2+3"
         target_price: 4.99
       - product_id: "1425039730"
-        name: "Monkey Island™ 2 Special Edition: LeChuck’s Revenge™"
+        name: "Monkey Island™ 2 Special Edition: LeChuck's Revenge™"
         target_price: 4.99
       - product_id: "1207666293"
         name: "Indiana Jones® and the Fate of Atlantis™"
@@ -71,14 +55,14 @@ targets:
     type: price
     interval_hours: 6
     currency: KRW
-    enabled: false
-    dry_run: true
-    products: []  # 추후 추가
-
-  - site: amazon
-    type: price
-    interval_hours: 12
-    currency: KRW
-    enabled: false
-    dry_run: true
-    products: []  # 추후 추가
+    enabled: true
+    dry_run: false
+    products: []
+    # watchlist 사용 예시 (비워두면 전체 무료 게임 알림):
+    # products:
+    #   - slug: "agent-a-a-puzzle-in-disguise-42fe5f"
+    #     name: "Agent A: A Puzzle in Disguise"
+    #     target_price: 0
+    #   - slug: "baldurs-gate-2-enhanced-edition"
+    #     name: "Baldur's Gate II: Enhanced Edition"
+    #     target_price: 0

@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import glob
 from datetime import UTC, datetime
 
 import yaml  # type: ignore[import-untyped]
@@ -11,6 +12,7 @@ from dereel.core.notifier import Notifier
 from dereel.core.settings import settings
 from dereel.core.storage import get_storage
 from dereel.crawlers.apple_refurb import AppleRefurbCrawler
+from dereel.crawlers.epic import EpicCrawler
 from dereel.crawlers.gog import GogCrawler
 from dereel.crawlers.steam import SteamCrawler
 
@@ -18,12 +20,17 @@ CRAWLER_REGISTRY = {
     "apple_refurb": AppleRefurbCrawler,
     "steam": SteamCrawler,
     "gog": GogCrawler,
+    "epic": EpicCrawler,
 }
 
 
-async def run(type_filter: str | None = None) -> None:
-    with open("config/targets.yaml") as f:
+async def run(config_path: str) -> None:
+    with open(config_path) as f:
         config = yaml.safe_load(f)
+
+    if not config or "targets" not in config:
+        logger.debug(f"[{config_path}] targets 없음 — 스킵")
+        return
 
     storage = get_storage(settings.storage_type, data_dir=settings.data_dir)
     alert_history = AlertHistory(storage)
@@ -35,10 +42,6 @@ async def run(type_filter: str | None = None) -> None:
         target_type = target.get("type", "stock")
         dry_run = target.get("dry_run", False)
         enabled = target.get("enabled", True)
-
-        if type_filter and target_type != type_filter:
-            logger.debug(f"[{site}] type={target_type} — '{type_filter}' 필터로 스킵")
-            continue
 
         if not enabled:
             logger.debug(f"[{site}] 비활성화 — 스킵")
@@ -92,20 +95,27 @@ async def run(type_filter: str | None = None) -> None:
                     dry_run=dry_run,
                 )
 
-    logger.info("전체 크롤링 완료 ✅")
+    logger.info(f"[{config_path}] 크롤링 완료 ✅")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="DeReel 크롤러")
     parser.add_argument(
-        "--type",
-        dest="type_filter",
-        choices=["stock", "price"],
+        "--config",
+        dest="config",
         default=None,
-        help="실행할 타겟 타입 (stock / price). 생략하면 전체 실행.",
+        help="설정 파일 경로. 생략하면 config/*.yaml 전체 실행.",
     )
     args = parser.parse_args()
-    asyncio.run(run(type_filter=args.type_filter))
+
+    config_files = [args.config] if args.config else sorted(glob.glob("config/*.yaml"))
+
+    async def run_all() -> None:
+        for config_path in config_files:
+            await run(config_path)
+        logger.info("전체 크롤링 완료 ✅")
+
+    asyncio.run(run_all())
 
 
 if __name__ == "__main__":

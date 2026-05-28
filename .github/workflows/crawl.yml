@@ -1,4 +1,4 @@
-name: DeReel — 재고 크롤링
+name: DeReel — 크롤링
 
 on:
   schedule:
@@ -33,16 +33,15 @@ jobs:
       - name: Install Playwright browsers
         run: uv run playwright install chromium --with-deps
 
-      - name: Run stock crawler
+      - name: Run all crawlers
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: uv run python -m dereel.run --type stock
+        run: uv run python -m dereel.run
 
       - name: Commit state files
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/
-          git diff --cached --quiet || (git commit -m "chore: update stock state [skip ci]" && git pull --rebase origin main && git push)
-
+          git diff --cached --quiet || (git commit -m "chore: update state [skip ci]" && git pull --rebase origin main && git push)

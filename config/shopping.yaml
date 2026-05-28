@@ -1,0 +1,17 @@
+targets:
+  - site: amazon
+    type: price
+    interval_hours: 12
+    currency: USD
+    enabled: false
+    dry_run: true
+    products: []  # 추후 추가
+
+  # coupang: 파트너스 API 구현 후 추가
+  # - site: coupang
+  #   type: price
+  #   interval_hours: 6
+  #   currency: KRW
+  #   enabled: false
+  #   dry_run: true
+  #   products: []

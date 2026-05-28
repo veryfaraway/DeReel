@@ -1,0 +1,14 @@
+targets:
+  - site: apple_refurb
+    type: stock
+    interval_hours: 4
+    url: "https://www.apple.com/shop/refurbished/airpods"
+    enabled: true
+    dry_run: false
+
+  - site: apple_refurb
+    type: stock
+    interval_hours: 4
+    url: "https://www.apple.com/kr/shop/refurbished/airpods"
+    enabled: true
+    dry_run: false
