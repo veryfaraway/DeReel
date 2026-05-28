@@ -34,21 +34,18 @@ DeReel 데이터 계층
 
 ```python
 # dereel/models/stock_result.py
-from dataclasses import dataclass
 from datetime import datetime
+from pydantic import BaseModel, Field
 
-@dataclass
-class StockResult:
+class StockResult(BaseModel):
     site: str           # 사이트 식별자 (예: "apple_refurb")
     product_id: str     # 사이트 내 고유 식별자 (예: Apple SKU "MQTP3KH/A")
     name: str           # 제품명 (예: "AirPods Pro (2세대)")
-    available: bool     # 재고 여부 (True = 재고 있음)
-    price: int          # 현재 가격 (원화, 원 단위 정수)
+    in_stock: bool      # 재고 여부 (True = 재고 있음)
+    price: float        # 현재 가격 (현지 통화 기준)
     currency: str       # 원본 통화 코드 (예: "KRW")
     url: str            # 상품 페이지 URL
-    fetched_at: datetime  # 크롤링 시각 (KST 기준 UTC 저장)
-    category: str = ""  # 카테고리 (예: "airpods", "mac")
-    image_url: str = "" # 상품 이미지 URL (알림 메시지용, 선택)
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 ```
 
 **유효성 검증 규칙**
@@ -58,8 +55,8 @@ class StockResult:
 | `site` | str | ✅ | `apple_refurb` 고정 (Phase 1) |
 | `product_id` | str | ✅ | 공백 불가, 사이트 내 유니크 |
 | `name` | str | ✅ | 1자 이상 |
-| `available` | bool | ✅ | True / False |
-| `price` | int | ✅ | 0 이상 (무료 제품은 0) |
+| `in_stock` | bool | ✅ | True / False |
+| `price` | float | ✅ | 0 이상 (무료 제품은 0) |
 | `currency` | str | ✅ | ISO 4217 코드 (KRW, USD, JPY …) |
 | `url` | str | ✅ | `https://` 시작 |
 | `fetched_at` | datetime | ✅ | UTC 기준 |
@@ -70,31 +67,37 @@ class StockResult:
 
 ```python
 # dereel/models/price_result.py
-from dataclasses import dataclass
 from datetime import datetime
+from pydantic import BaseModel, Field
 
-@dataclass
-class PriceResult:
-    site: str           # 사이트 식별자 (예: "steam", "coupang")
-    product_id: str     # 사이트 내 고유 식별자
-    name: str           # 제품명
-    price: int          # 현재 가격 (현지 통화 기준, 정수)
-    original_price: int # 정가 (할인 전, 현지 통화 기준)
-    discount_pct: float # 할인율 (0.0 ~ 100.0)
-    currency: str       # 원본 통화 코드
-    original_amount: int  # 원본 통화 기준 가격 (price와 동일)
-    url: str            # 상품 페이지 URL
-    fetched_at: datetime
-    is_free: bool = False        # 무료 배포 여부 (Epic 무료 게임 등)
-    free_until: datetime | None = None  # 무료 종료 시각
-    image_url: str = ""
+class PriceResult(BaseModel):
+    site: str               # 사이트 식별자 (예: "steam", "gog")
+    product_id: str         # 사이트 내 고유 식별자
+    name: str               # 제품명
+    current_price: float    # 현재 가격 (현지 통화 기준)
+    original_price: float   # 정가 (할인 전)
+    currency: str           # 원본 통화 코드
+    url: str                # 상품 페이지 URL
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    @property
+    def is_free(self) -> bool:
+        return self.current_price == 0
+
+    def should_notify(self, target_price: float) -> bool:
+        """무료 전환 또는 목표가 이하 시 True"""
+        if self.is_free:
+            return True
+        return self.current_price <= target_price
 ```
 
 **사이트별 product_id 규칙**
 
 | 사이트 | product_id 형식 | 예시 |
 |---|---|---|
-| `steam` | Steam App ID (정수 문자열) | `"1245620"` |
+| `steam` (app) | Steam App ID (정수 문자열) | `"1245620"` |
+| `steam` (package) | Steam Sub ID (정수 문자열) | `"6588"` |
+| `steam` (bundle) | Steam Bundle ID (정수 문자열) | `"6588"` |
 | `coupang` | 쿠팡 상품 ID | `"12345678"` |
 | `gog` | GOG Product ID (정수 문자열) | `"1207658885"` |
 | `epic` | Epic Offer ID (UUID) | `"a3b4c5d6-..."` |
@@ -461,99 +464,91 @@ settings = Settings()
 
 ## 7. targets.yaml 전체 스키마
 
+루트 키는 `targets` (리스트 형식). 각 항목은 `site`, `type`, `interval_hours` 필수.
+
 ```yaml
 # config/targets.yaml
+targets:
 
-crawlers:
-
-  # ── Apple 리퍼비시 ──────────────────────────────
-  apple_refurb:
+  # ── Apple 리퍼비시 (stock) ────────────────────────
+  - site: apple_refurb
+    type: stock
+    interval_hours: 4
+    url: "https://www.apple.com/kr/shop/refurbished/airpods"
     enabled: true
-    interval_hours: 4          # 크롤링 주기 (시간 단위, 1~24)
-    region: kr                 # 국가 코드 (kr, us, jp ...)
-    categories:                # 감시할 카테고리 목록
-      - airpods
-      # - mac
-      # - iphone
-      # - ipad
-      # - applewatch
-    products: []               # 비어있으면 categories 전체 감시
-    # products:                # 특정 SKU만 감시할 경우
-    #   - product_id: "MQTP3KH/A"
-    #     name: "AirPods Pro (2세대)"
+    dry_run: false
 
-  # ── Steam ───────────────────────────────────────
-  steam:
-    enabled: false
+  # ── Steam (price) ─────────────────────────────────
+  - site: steam
+    type: price
     interval_hours: 3
+    currency: KRW
+    enabled: true
+    dry_run: false
     products:
-      - product_id: "1245620"
+      - app_id: "1245620"         # Steam App ID
         name: "Elden Ring"
-        target_price: 15000    # 원화 목표가 이하 시 알림
-        alert_threshold: null  # % 하락 알림 (null이면 미사용)
+        target_price: 15000
+      - package_id: "123"         # Steam Sub(Package) ID
+        name: "Some Collection"
+        target_price: 10000
+      - bundle_id: "6588"         # Steam Bundle ID
+        name: "Monkey Island Collection"
+        target_price: 20000
 
-  # ── 쿠팡 ────────────────────────────────────────
-  coupang:
-    enabled: false
-    interval_hours: 3
-    products:
-      - product_id: "12345678"
-        name: "MacBook Air M3"
-        target_price: 1500000
-        alert_threshold: null
-
-  # ── GOG ─────────────────────────────────────────
-  gog:
-    enabled: false
-    interval_hours: 3
+  # ── GOG (price) ───────────────────────────────────
+  - site: gog
+    type: price
+    interval_hours: 6
+    currency: USD
+    enabled: true
+    dry_run: false
     products:
       - product_id: "1207658885"
         name: "The Witcher 3: Wild Hunt"
-        target_price: 5000
-        alert_threshold: 75.0  # 75% 이상 할인 시 알림
+        target_price: 4.99
 
-  # ── Epic Games ──────────────────────────────────
-  epic:
+  # ── Epic (price, 미구현) ───────────────────────────
+  - site: epic
+    type: price
+    interval_hours: 6
+    currency: KRW
     enabled: false
-    interval_hours: 3
-    watch_free_games: true     # 무료 배포 게임 감지 여부
-    products:
-      - product_id: "offer-id-uuid"
-        name: "Satisfactory"
-        target_price: 20000
-        alert_threshold: null
+    dry_run: true
+    products: []
 
-  # ── Amazon ──────────────────────────────────────
-  amazon:
+  # ── Amazon (price, 미구현) ─────────────────────────
+  - site: amazon
+    type: price
+    interval_hours: 12
+    currency: KRW
     enabled: false
-    interval_hours: 6          # 가장 보수적으로 운영
-    region: jp                 # jp (일본) 또는 us (미국)
-    products:
-      - product_id: "B09V3KXJPB"
-        name: "AirPods Pro (2세대) JP"
-        target_price: 30000    # 현지 통화(JPY) 기준 (원화 환산 X)
-        alert_threshold: null
-
-# ── 알림 설정 ────────────────────────────────────
-notifications:
-  telegram:
-    enabled: true
-    # BOT_TOKEN, CHAT_ID는 환경변수에서 주입 (여기에 직접 작성 금지)
-    alert_cooldown_hours: 24   # 동일 제품 알림 최소 간격 (기본 24시간)
+    dry_run: true
+    products: []
 ```
 
-**targets.yaml 유효성 검증 규칙**
+**필드 정의**
 
 | 필드 | 타입 | 기본값 | 제약 |
 |---|---|---|---|
-| `enabled` | boolean | false | — |
-| `interval_hours` | integer | — | 1 이상 24 이하 |
-| `target_price` | integer | null | 0 이상, null이면 미사용 |
-| `alert_threshold` | float | null | 0.0 초과 100.0 이하, null이면 미사용 |
-| `alert_cooldown_hours` | integer | 24 | 1 이상 168 이하 (최대 1주일) |
+| `site` | string | — | CRAWLER_REGISTRY 등록 키와 일치 |
+| `type` | string | `"stock"` | `stock` 또는 `price` |
+| `enabled` | boolean | `true` | false면 완전 스킵 |
+| `interval_hours` | number | `1` | 1 이상 24 이하 |
+| `currency` | string | `"USD"` | ISO 4217 코드 |
+| `dry_run` | boolean | `false` | true면 알림 미발송 |
+| `url` | string | — | stock 타입 필수 |
+| `products[].target_price` | number | `0` | 현지 통화 기준 목표가 |
 
-> `target_price`와 `alert_threshold`는 **OR 조건**으로 동작:  
-> 둘 중 하나라도 충족하면 알림 발송
+**Steam products 식별자 우선순위**
+
+하나의 product 항목에는 `app_id`, `package_id`, `bundle_id` 중 하나만 사용:
+
+| 필드 | 대응 API | 스토어 URL |
+|---|---|---|
+| `app_id` | `/api/appdetails` | `/app/{id}` |
+| `package_id` | `/api/packagedetails` | `/sub/{id}` |
+| `bundle_id` | `/api/bundledetails` | `/bundle/{id}` |
 
 ---
 
@@ -562,4 +557,5 @@ notifications:
 | 버전 | 날짜 | 내용 | 작성자 |
 |---|---|---|---|
 | v0.1.0 | 2026-03-31 | 최초 초안 작성 | 한섭 |
+| v0.2.0 | 2026-05-28 | StockResult/PriceResult Pydantic 모델로 교체, targets.yaml 실제 구조 반영, Steam bundle_id 추가 | 한섭 |
 

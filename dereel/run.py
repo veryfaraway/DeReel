@@ -1,14 +1,15 @@
 import argparse
 import asyncio
+from datetime import UTC, datetime
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from loguru import logger
 
 from dereel.core.alert_history import AlertHistory
 from dereel.core.comparator import Comparator
 from dereel.core.notifier import Notifier
-from dereel.core.storage import get_storage
 from dereel.core.settings import settings
+from dereel.core.storage import get_storage
 from dereel.crawlers.apple_refurb import AppleRefurbCrawler
 from dereel.crawlers.gog import GogCrawler
 from dereel.crawlers.steam import SteamCrawler
@@ -29,14 +30,12 @@ async def run(type_filter: str | None = None) -> None:
     notifier = Notifier()
     comparator = Comparator(storage, alert_history, notifier)
 
-
     for target in config["targets"]:
         site = target["site"]
         target_type = target.get("type", "stock")
         dry_run = target.get("dry_run", False)
         enabled = target.get("enabled", True)
 
-        # --type 인자로 필터링
         if type_filter and target_type != type_filter:
             logger.debug(f"[{site}] type={target_type} — '{type_filter}' 필터로 스킵")
             continue
@@ -50,8 +49,22 @@ async def run(type_filter: str | None = None) -> None:
             logger.warning(f"등록되지 않은 크롤러: {site}")
             continue
 
+        # interval_hours 스케줄 체크
+        interval_hours: float = target.get("interval_hours", 1)
+        url_key: str = target.get("url", "")
+        schedule_key = f"{site}:{url_key}" if url_key else site
+        last_crawled = storage.get_last_crawled_at(schedule_key)
+        if last_crawled is not None:
+            elapsed_hours = (datetime.now(UTC) - last_crawled).total_seconds() / 3600
+            if elapsed_hours < interval_hours:
+                logger.debug(
+                    f"[{site}] interval_hours={interval_hours} 미경과 "
+                    f"({elapsed_hours:.1f}h/{interval_hours}h) — 스킵"
+                )
+                continue
+
         try:
-            async with crawler_cls() as crawler:
+            async with crawler_cls() as crawler:  # type: ignore[abstract]
                 if target_type == "stock":
                     url = target["url"]
                     results = await crawler.fetch(url)
@@ -60,17 +73,16 @@ async def run(type_filter: str | None = None) -> None:
                 elif target_type == "price":
                     products = target.get("products", [])
                     currency = target.get("currency", "USD")
-                    results = await crawler.fetch_products(products, currency=currency)
+                    results = await crawler.fetch_products(products, currency=currency)  # type: ignore[attr-defined]
                     await comparator.compare_price(site, results, products, dry_run=dry_run)
 
-            # 성공 시 장애 카운트 즉시 리셋
+            storage.save_crawled_at(schedule_key, datetime.now(UTC))
             storage.reset_failures(site)
 
         except Exception as e:
             failures_count = storage.increment_failures(site, str(e))
             logger.error(f"[{site}] 크롤링 실패 ({failures_count}회 연속) — {e}")
 
-            # 연속 3회 실패 시에만 Telegram 장애 경보 발송
             if failures_count >= 3:
                 await notifier.send(
                     f"🚨 [DeReel 경보] 크롤러 연속 실패\n\n"

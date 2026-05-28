@@ -1,6 +1,6 @@
+from loguru import logger
 from telegram import Bot
 from telegram.request import HTTPXRequest
-from loguru import logger
 
 from dereel.core.settings import settings
 
@@ -30,4 +30,3 @@ class Notifier:
             logger.info("Telegram 알림 발송 완료")
         except Exception as e:
             logger.error(f"Telegram 알림 발송 실패 — {e}")
-            raise

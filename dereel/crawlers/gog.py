@@ -1,3 +1,5 @@
+from typing import Any
+
 from loguru import logger
 
 from dereel.core.base_crawler import BaseCrawler
@@ -21,7 +23,7 @@ class GogCrawler(BaseCrawler):
 
     async def fetch_products(
         self,
-        products: list[dict],
+        products: list[dict[str, Any]],
         currency: str = "USD",
     ) -> list[PriceResult]:
         cc = CURRENCY_TO_CC.get(currency.upper(), "US")

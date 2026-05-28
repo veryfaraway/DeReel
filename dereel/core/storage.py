@@ -1,6 +1,7 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from dereel.core.base_storage import Storage
 
@@ -23,26 +24,26 @@ class JsonStorage(Storage):
 
     # ── 재고 상태 ──────────────────────────────────────────
 
-    def load_state(self, site: str) -> dict:
+    def load_state(self, site: str) -> dict[str, Any]:
         path = self._state_path(site)
         if not path.exists():
             return {}
-        return json.loads(path.read_text())
+        return json.loads(path.read_text())  # type: ignore[no-any-return]
 
-    def save_state(self, site: str, state: dict) -> None:
+    def save_state(self, site: str, state: dict[str, Any]) -> None:
         self._state_path(site).write_text(
             json.dumps(state, ensure_ascii=False, indent=2)
         )
 
     # ── 알림 이력 ──────────────────────────────────────────
 
-    def get_alert_record(self, key: str) -> dict | None:
+    def get_alert_record(self, key: str) -> dict[str, Any] | None:
         site = key.split(":")[0]
         path = self._alert_path(site)
         if not path.exists():
             return None
         try:
-            data = json.loads(path.read_text())
+            data: dict[str, Any] = json.loads(path.read_text())
         except Exception:
             return None
 
@@ -53,13 +54,13 @@ class JsonStorage(Storage):
         # 하위 호환성 유지: 기존에 단순 timestamp(float)로 저장되어 있던 경우 처리
         if isinstance(val, (int, float)):
             return {
-                "last_sent_at": datetime.fromtimestamp(val, tz=timezone.utc),
+                "last_sent_at": datetime.fromtimestamp(val, tz=UTC),
                 "last_alerted_price": None,
             }
-        elif isinstance(val, dict):
+        if isinstance(val, dict):
             ts = val.get("last_sent_at")
             return {
-                "last_sent_at": datetime.fromtimestamp(ts, tz=timezone.utc) if ts else None,
+                "last_sent_at": datetime.fromtimestamp(ts, tz=UTC) if ts else None,
                 "last_alerted_price": val.get("last_alerted_price"),
             }
         return None
@@ -67,29 +68,11 @@ class JsonStorage(Storage):
     def save_alert_record(self, key: str, timestamp: datetime, price: float | None = None) -> None:
         site = key.split(":")[0]
         path = self._alert_path(site)
-        data = json.loads(path.read_text()) if path.exists() else {}
+        data: dict[str, Any] = json.loads(path.read_text()) if path.exists() else {}
         data[key] = {
             "last_sent_at": timestamp.timestamp(),
             "last_alerted_price": price,
         }
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
-
-    def get_last_alert_time(self, key: str) -> datetime | None:
-        site = key.split(":")[0]
-        path = self._alert_path(site)
-        if not path.exists():
-            return None
-        data = json.loads(path.read_text())
-        ts = data.get(key)
-        if ts is None:
-            return None
-        return datetime.fromtimestamp(ts, tz=timezone.utc)
-
-    def save_alert_time(self, key: str, timestamp: datetime) -> None:
-        site = key.split(":")[0]
-        path = self._alert_path(site)
-        data = json.loads(path.read_text()) if path.exists() else {}
-        data[key] = timestamp.timestamp()
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
     # ── 크롤링 스케줄 ──────────────────────────────────────
@@ -99,7 +82,7 @@ class JsonStorage(Storage):
         if not path.exists():
             return None
         try:
-            data = json.loads(path.read_text())
+            data: dict[str, Any] = json.loads(path.read_text())
         except Exception:
             return None
 
@@ -111,23 +94,17 @@ class JsonStorage(Storage):
 
         if ts is None:
             return None
-        return datetime.fromtimestamp(ts, tz=timezone.utc)
+        return datetime.fromtimestamp(float(ts), tz=UTC)
 
     def save_crawled_at(self, key: str, timestamp: datetime) -> None:
         path = self._crawl_path()
-        data = json.loads(path.read_text()) if path.exists() else {}
+        data: dict[str, Any] = json.loads(path.read_text()) if path.exists() else {}
 
         # 하위 호환성 마이그레이션
         if "schedules" not in data and data:
-            data = {
-                "schedules": data,
-                "failures": {}
-            }
+            data = {"schedules": data, "failures": {}}
         elif not data:
-            data = {
-                "schedules": {},
-                "failures": {}
-            }
+            data = {"schedules": {}, "failures": {}}
 
         data["schedules"][key] = timestamp.timestamp()
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
@@ -137,30 +114,30 @@ class JsonStorage(Storage):
         if not path.exists():
             return 0
         try:
-            data = json.loads(path.read_text())
+            data: dict[str, Any] = json.loads(path.read_text())
         except Exception:
             return 0
-        return data.get("failures", {}).get(site, {}).get("consecutive_failures", 0)
+        return int(data.get("failures", {}).get(site, {}).get("consecutive_failures", 0))
 
     def increment_failures(self, site: str, error_message: str) -> int:
         path = self._crawl_path()
-        data = json.loads(path.read_text()) if path.exists() else {}
+        data: dict[str, Any] = json.loads(path.read_text()) if path.exists() else {}
 
         # 하위 호환성 마이그레이션 및 초기화
         if "failures" not in data:
             data = {
                 "schedules": data if "schedules" not in data else data.get("schedules", {}),
-                "failures": {}
+                "failures": {},
             }
 
-        failures = data["failures"]
-        record = failures.get(site, {"consecutive_failures": 0, "last_error_message": ""})
-        new_count = record["consecutive_failures"] + 1
+        failures: dict[str, Any] = data["failures"]
+        record: dict[str, Any] = failures.get(site, {"consecutive_failures": 0, "last_error_message": ""})
+        new_count = int(record.get("consecutive_failures", 0)) + 1
 
         failures[site] = {
             "consecutive_failures": new_count,
             "last_error_message": error_message,
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "updated_at": datetime.now(UTC).isoformat(),
         }
 
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
@@ -171,7 +148,7 @@ class JsonStorage(Storage):
         if not path.exists():
             return
         try:
-            data = json.loads(path.read_text())
+            data: dict[str, Any] = json.loads(path.read_text())
         except Exception:
             return
 
@@ -179,17 +156,16 @@ class JsonStorage(Storage):
         if "failures" not in data:
             data = {
                 "schedules": data if "schedules" not in data else data.get("schedules", {}),
-                "failures": {}
+                "failures": {},
             }
 
         if site in data["failures"]:
             data["failures"][site] = {
                 "consecutive_failures": 0,
                 "last_error_message": "",
-                "updated_at": datetime.now(timezone.utc).isoformat()
+                "updated_at": datetime.now(UTC).isoformat(),
             }
             path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
-
 
 
 def get_storage(storage_type: str, data_dir: str = "data") -> Storage:
@@ -197,4 +173,3 @@ def get_storage(storage_type: str, data_dir: str = "data") -> Storage:
     if storage_type.lower() == "json":
         return JsonStorage(data_dir=data_dir)
     raise ValueError(f"지원하지 않는 스토리지 타입: {storage_type}")
-

@@ -1,5 +1,6 @@
 # dereel/models/price_result.py
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -11,7 +12,7 @@ class PriceResult(BaseModel):
     current_price: float
     currency: str
     url: str
-    fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def is_free(self) -> bool:

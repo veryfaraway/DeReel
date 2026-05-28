@@ -1,12 +1,14 @@
 # dereel/crawlers/steam.py
+from typing import Any
+
 from loguru import logger
-import httpx
 
 from dereel.core.base_crawler import BaseCrawler
 from dereel.models.price_result import PriceResult
 
 STEAM_API_URL = "https://store.steampowered.com/api/appdetails"
 STEAM_PACKAGE_API_URL = "https://store.steampowered.com/api/packagedetails"
+STEAM_BUNDLE_API_URL = "https://store.steampowered.com/api/bundledetails"
 
 
 CURRENCY_TO_CC: dict[str, str] = {
@@ -26,7 +28,7 @@ class SteamCrawler(BaseCrawler):
 
     async def fetch_products(
         self,
-        products: list[dict],
+        products: list[dict[str, Any]],
         currency: str = "KRW",
     ) -> list[PriceResult]:
         """products 리스트를 받아 Steam API로 가격을 조회한다."""
@@ -36,16 +38,24 @@ class SteamCrawler(BaseCrawler):
         for product in products:
             app_id = product.get("app_id")
             package_id = product.get("package_id")
+            bundle_id = product.get("bundle_id")
             name = product["name"]
 
-            # 1. package_id가 명확히 지정된 경우 바로 패키지 API 조회 (최적화)
+            # 1. bundle_id가 명확히 지정된 경우 바로 번들 API 조회
+            if bundle_id:
+                result = await self._fetch_bundle(str(bundle_id), name, currency, cc)
+                if result:
+                    results.append(result)
+                continue
+
+            # 2. package_id가 명확히 지정된 경우 바로 패키지 API 조회 (최적화)
             if package_id:
                 result = await self._fetch_package(str(package_id), name, currency, cc)
                 if result:
                     results.append(result)
                 continue
 
-            # 2. app_id로 지정된 경우
+            # 3. app_id로 지정된 경우
             if app_id:
                 app_id_str = str(app_id)
                 # 단일 앱 조회 시도
@@ -86,7 +96,7 @@ class SteamCrawler(BaseCrawler):
             return None
 
         price_data = entry.get("data", {}).get("price_overview")
-        return self._build_price_result(app_id, name, price_data, currency, is_package=False)
+        return self._build_price_result(app_id, name, price_data, currency, product_type="app")
 
     async def _fetch_package(
         self,
@@ -113,25 +123,64 @@ class SteamCrawler(BaseCrawler):
             return None
 
         price_data = entry.get("data", {}).get("price")
-        return self._build_price_result(package_id, name, price_data, currency, is_package=True)
+        return self._build_price_result(package_id, name, price_data, currency, product_type="package")
+
+    async def _fetch_bundle(
+        self,
+        bundle_id: str,
+        name: str,
+        currency: str,
+        cc: str,
+    ) -> PriceResult | None:
+        """번들(Bundle ID) 상세 정보를 조회한다."""
+        try:
+            resp = await self._client.get(
+                STEAM_BUNDLE_API_URL,
+                params={"bundleids": bundle_id, "cc": cc},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.error(f"[steam] {name}({bundle_id}) Bundle 요청 실패 — {e}")
+            return None
+
+        entry = data.get(bundle_id, {})
+        if not entry.get("success"):
+            logger.warning(f"[steam] {name}({bundle_id}) Bundle API success=false")
+            return None
+
+        bundle_data = entry.get("data", {})
+        if not bundle_data.get("final_price") and not bundle_data.get("original_price"):
+            price_data = None
+        else:
+            # Bundle API는 Package와 달리 data 레벨에 직접 가격 필드를 반환
+            price_data = {
+                "initial": bundle_data.get("original_price", 0),
+                "final": bundle_data.get("final_price", 0),
+                "discount_percent": bundle_data.get("discount_percent", 0),
+            }
+        return self._build_price_result(bundle_id, name, price_data, currency, product_type="bundle")
 
     def _build_price_result(
         self,
         product_id: str,
         name: str,
-        price_data: dict | None,
+        price_data: dict[str, Any] | None,
         currency: str,
-        is_package: bool = False,
+        product_type: str = "app",
     ) -> PriceResult:
-        store_url = (
-            f"https://store.steampowered.com/sub/{product_id}"
-            if is_package
-            else f"https://store.steampowered.com/app/{product_id}"
-        )
+        if product_type == "package":
+            store_url = f"https://store.steampowered.com/sub/{product_id}"
+        elif product_type == "bundle":
+            store_url = f"https://store.steampowered.com/bundle/{product_id}"
+        else:
+            store_url = f"https://store.steampowered.com/app/{product_id}"
 
-        # 무료 게임/패키지 처리
+        type_label = {"package": "패키지", "bundle": "번들"}.get(product_type, "게임")
+
+        # 무료 게임/패키지/번들 처리
         if price_data is None:
-            logger.info(f"[steam] {name}({product_id}) — 무료 {'패키지' if is_package else '게임'} 감지")
+            logger.info(f"[steam] {name}({product_id}) — 무료 {type_label} 감지")
             return PriceResult(
                 site="steam",
                 product_id=product_id,

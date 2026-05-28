@@ -141,7 +141,7 @@ def test_format_message_free():
     assert "무료" in msg
 
 
-# ── Package ID 및 Fallback 테스트 ────────────────────────────────────────────────
+# ── Package ID / Bundle ID / Fallback 테스트 ─────────────────────────────────────
 MOCK_API_RESPONSE_PACKAGE = {
     "6588": {
         "success": True,
@@ -155,6 +155,56 @@ MOCK_API_RESPONSE_PACKAGE = {
         },
     }
 }
+
+
+MOCK_API_RESPONSE_BUNDLE = {
+    "6588": {
+        "success": True,
+        "data": {
+            "name": "Monkey Island Collection",
+            "bundleid": 6588,
+            "original_price": 2000000,
+            "final_price": 1000000,
+            "discount_percent": 50,
+        },
+    }
+}
+
+
+@pytest.mark.asyncio
+async def test_fetch_bundle_id_directly(crawler):
+    """bundle_id가 지정된 경우 번들 API를 직접 조회한다."""
+    products = [{"bundle_id": "6588", "name": "Monkey Island Collection", "target_price": 20000}]
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = MOCK_API_RESPONSE_BUNDLE
+
+    crawler._client.get = AsyncMock(return_value=mock_resp)
+
+    results = await crawler.fetch_products(products, currency="KRW")
+
+    assert len(results) == 1
+    assert results[0].product_id == "6588"
+    assert results[0].original_price == 20000.0
+    assert results[0].current_price == 10000.0
+    assert results[0].url == "https://store.steampowered.com/bundle/6588"
+
+
+@pytest.mark.asyncio
+async def test_fetch_bundle_returns_empty_on_api_failure(crawler):
+    """bundle API가 success=false를 반환하면 결과가 없다."""
+    products = [{"bundle_id": "9999", "name": "Ghost Bundle", "target_price": 0}]
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = {"9999": {"success": False}}
+
+    crawler._client.get = AsyncMock(return_value=mock_resp)
+
+    results = await crawler.fetch_products(products, currency="KRW")
+
+    assert results == []
 
 
 @pytest.mark.asyncio

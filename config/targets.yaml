@@ -24,7 +24,7 @@ targets:
       - app_id: "32360"
         name: "The Secret of Monkey Island: Special Edition"
         target_price: 5000
-      - package_id: "6588"
+      - bundle_id: "6588"
         name: "Monkey Island Collection"
         target_price: 20000
       - app_id: "32310"

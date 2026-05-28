@@ -1,8 +1,10 @@
+from typing import Any
+
 from loguru import logger
 
 from dereel.core.alert_history import AlertHistory
-from dereel.core.notifier import Notifier
 from dereel.core.base_storage import Storage
+from dereel.core.notifier import Notifier
 from dereel.models.price_result import PriceResult
 from dereel.models.stock_result import StockResult
 
@@ -49,14 +51,14 @@ class Comparator:
         self,
         site_name: str,
         current: list[PriceResult],
-        products_config: list[dict],
+        products_config: list[dict[str, Any]],
         dry_run: bool = False,
     ) -> None:
         """이전 가격과 비교해 목표가 도달 또는 무료 전환 시 알림을 발송한다."""
         # product_id → target_price 맵 생성
         target_map: dict[str, float] = {}
         for p in products_config:
-            product_id = str(p.get("app_id") or p.get("package_id") or p.get("product_id") or p.get("slug", ""))
+            product_id = str(p.get("app_id") or p.get("package_id") or p.get("bundle_id") or p.get("product_id") or p.get("slug", ""))
             target_map[product_id] = float(p.get("target_price", 0))
 
         previous = self._storage.load_state(site_name)

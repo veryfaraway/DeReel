@@ -15,12 +15,12 @@ class AppleRefurbCrawler(BaseCrawler):
 
     site_name = "apple_refurb"
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "AppleRefurbCrawler":
         self._pw = await async_playwright().start()
         self._browser = await self._pw.chromium.launch(headless=True)
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args: object) -> None:
         await self._browser.close()
         await self._pw.stop()
 

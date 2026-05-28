@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from loguru import logger
 
@@ -27,7 +27,7 @@ class AlertHistory:
         if last_sent is None:
             return True
 
-        elapsed = datetime.now(timezone.utc) - last_sent
+        elapsed = datetime.now(UTC) - last_sent
         if elapsed >= self._cooldown:
             return True
         remaining = self._cooldown - elapsed
@@ -36,5 +36,5 @@ class AlertHistory:
 
     def record(self, alert_key: str, current_price: float | None = None) -> None:
         """알림 발송 후 현재 시각과 가격을 기록한다."""
-        self._storage.save_alert_record(alert_key, datetime.now(timezone.utc), current_price)
+        self._storage.save_alert_record(alert_key, datetime.now(UTC), current_price)
 
