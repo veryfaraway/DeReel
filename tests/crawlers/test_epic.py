@@ -97,6 +97,23 @@ async def test_fetch_returns_empty_on_api_failure(crawler):
     assert results == []
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("null_response", [
+    {"data": None},
+    {"data": {"Catalog": None}},
+    {"data": {"Catalog": {"searchStore": None}}},
+    {"data": {"Catalog": {"searchStore": {"elements": None}}}},
+])
+async def test_fetch_returns_empty_on_null_response(crawler, null_response):
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = null_response
+    crawler._client.get = AsyncMock(return_value=mock_resp)
+
+    results = await crawler.fetch_products([], currency="KRW")
+    assert results == []
+
+
 def test_format_message():
     from datetime import datetime, timezone
     result = PriceResult(

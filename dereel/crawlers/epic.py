@@ -44,12 +44,9 @@ class EpicCrawler(BaseCrawler):
             logger.error(f"[epic] 무료 게임 프로모션 조회 실패 — {e}")
             return []
 
-        elements: list[dict[str, Any]] = (
-            data.get("data", {})
-                .get("Catalog", {})
-                .get("searchStore", {})
-                .get("elements", [])
-        )
+        catalog = (data.get("data") or {}).get("Catalog") or {}
+        search_store = catalog.get("searchStore") or {}
+        elements: list[dict[str, Any]] = search_store.get("elements") or []
         watchlist = {str(p["slug"]) for p in products if "slug" in p}
 
         results: list[PriceResult] = []
