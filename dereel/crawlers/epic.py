@@ -59,9 +59,8 @@ class EpicCrawler(BaseCrawler):
                 continue
 
             name = item.get("title", "Unknown")
-            original_price = (
-                item.get("price", {}).get("totalPrice", {}).get("originalPrice", 0)
-            ) / 100
+            price_info = (item.get("price") or {}).get("totalPrice") or {}
+            original_price = (price_info.get("originalPrice") or 0) / 100
 
             logger.info(f"[epic] 무료 게임 감지 — {name} (원가: {original_price:,.0f} {currency})")
             results.append(PriceResult(
@@ -78,9 +77,9 @@ class EpicCrawler(BaseCrawler):
 
     @staticmethod
     def _is_currently_free(item: dict[str, Any]) -> bool:
-        for offer_group in item.get("promotions", {}).get("promotionalOffers", []):
-            for offer in offer_group.get("promotionalOffers", []):
-                setting = offer.get("discountSetting", {})
+        for offer_group in (item.get("promotions") or {}).get("promotionalOffers") or []:
+            for offer in offer_group.get("promotionalOffers") or []:
+                setting = offer.get("discountSetting") or {}
                 if setting.get("discountType") == "PERCENTAGE" and setting.get("discountPercentage") == 0:
                     return True
         return False

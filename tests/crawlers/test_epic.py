@@ -103,6 +103,10 @@ async def test_fetch_returns_empty_on_api_failure(crawler):
     {"data": {"Catalog": None}},
     {"data": {"Catalog": {"searchStore": None}}},
     {"data": {"Catalog": {"searchStore": {"elements": None}}}},
+    # price와 promotions 모두 null → 무료 프로모션 없음 → 결과 없음
+    {"data": {"Catalog": {"searchStore": {"elements": [
+        {"title": "X", "id": "x", "productSlug": "x", "price": None, "promotions": None}
+    ]}}}},
 ])
 async def test_fetch_returns_empty_on_null_response(crawler, null_response):
     mock_resp = MagicMock()
@@ -112,6 +116,29 @@ async def test_fetch_returns_empty_on_null_response(crawler, null_response):
 
     results = await crawler.fetch_products([], currency="KRW")
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_free_game_with_null_price_info(crawler):
+    """promotions는 유효하지만 price.totalPrice가 null이면 original_price=0으로 반환한다."""
+    response = {"data": {"Catalog": {"searchStore": {"elements": [
+        {"title": "X", "id": "x", "productSlug": "x",
+         "price": {"totalPrice": None},
+         "promotions": {"promotionalOffers": [{"promotionalOffers": [
+             {"discountSetting": {"discountType": "PERCENTAGE", "discountPercentage": 0}}
+         ]}]}}
+    ]}}}}
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = response
+    crawler._client.get = AsyncMock(return_value=mock_resp)
+
+    results = await crawler.fetch_products([], currency="KRW")
+
+    assert len(results) == 1
+    assert results[0].original_price == 0.0
+    assert results[0].current_price == 0.0
+    assert results[0].is_free is True
 
 
 def test_format_message():
