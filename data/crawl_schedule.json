@@ -2,16 +2,17 @@
   "schedules": {
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/ipad": 1778070208.768335,
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1778070215.484579,
-    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1780022510.508522,
-    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1780022513.01278,
-    "steam": 1780022506.95091,
-    "gog": 1780005130.243746
+    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1780037421.313142,
+    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1780037423.789145,
+    "steam": 1780037414.756261,
+    "gog": 1780037417.346481,
+    "epic": 1780037418.843472
   },
   "failures": {
     "epic": {
-      "consecutive_failures": 3,
-      "last_error_message": "'NoneType' object has no attribute 'get'",
-      "updated_at": "2026-05-29T02:41:47.299260+00:00"
+      "consecutive_failures": 0,
+      "last_error_message": "",
+      "updated_at": "2026-05-29T06:50:18.843739+00:00"
     }
   }
 }
