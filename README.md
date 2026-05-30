@@ -99,7 +99,7 @@
 ### 1. 저장소 클론 및 의존성 설치
 
 ```bash
-git clone https://github.com/{username}/dereel.git
+git clone https://github.com/veryfaraway/DeReel.git
 cd dereel
 uv sync
 uv run playwright install chromium --with-deps
