@@ -7,7 +7,7 @@
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Cron-2088FF?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Telegram](https://img.shields.io/badge/Telegram-Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://core.telegram.org/bots)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/eoneone)
+[![ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/eoneone)
 
 ---
 
@@ -249,6 +249,20 @@ uv run mypy dereel/
 ⬜ Phase 2-B  가격 이력 집계 + Grafana 대시보드
 ⬜ Phase 3    Kafka 파이프라인 + Vue.js 커스텀 UI
 ```
+
+---
+
+## 후원
+
+후원 목표 달성 시 해당 단계의 소스코드를 공개합니다.
+
+| 목표 금액 | 공개 내용 |
+|---|---|
+| $50 | AWS DynamoDB + S3 기반 가격 이력 저장 모듈 오픈소스 공개 |
+| $160 | Grafana 대시보드 + 감시 목록 관리 웹 UI 오픈소스 공개 |
+| $385 | Kafka + Spark 파이프라인 개발 착수 및 블로그 연재 시작 |
+
+☕ [Ko-fi에서 후원하기](https://ko-fi.com/eoneone)
 
 ---
 
