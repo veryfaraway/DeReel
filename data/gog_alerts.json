@@ -1,0 +1,30 @@
+{
+  "gog:1207666253:price": {
+    "last_sent_at": 1781700639.611753,
+    "last_alerted_price": 4.99
+  },
+  "gog:1207658878:price": {
+    "last_sent_at": 1781700639.954025,
+    "last_alerted_price": 4.99
+  },
+  "gog:1425039730:price": {
+    "last_sent_at": 1781700640.280527,
+    "last_alerted_price": 3.49
+  },
+  "gog:1207666293:price": {
+    "last_sent_at": 1781700640.621567,
+    "last_alerted_price": 2.99
+  },
+  "gog:1440410803:price": {
+    "last_sent_at": 1781700640.947373,
+    "last_alerted_price": 2.09
+  },
+  "gog:1528148981:price": {
+    "last_sent_at": 1781700641.282588,
+    "last_alerted_price": 3.49
+  },
+  "gog:1207664663:price": {
+    "last_sent_at": 1781700641.622956,
+    "last_alerted_price": 3.99
+  }
+}
