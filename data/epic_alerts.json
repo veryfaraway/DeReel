@@ -22,5 +22,9 @@
   "epic:b28e038bd68b4e80840e7fb8b747de54:free": {
     "last_sent_at": 1781700642.70771,
     "last_alerted_price": 0.0
+  },
+  "epic:4ee365fd76704f37ae3dc13676f1ac61:free": {
+    "last_sent_at": 1781811191.618302,
+    "last_alerted_price": 0.0
   }
 }
