@@ -154,3 +154,34 @@ def test_format_message():
     assert "14,900" in msg
     assert "무료" in msg
     assert "Epic" in msg
+
+
+def test_extract_slug():
+    crawler = EpicCrawler()
+    
+    # 1. catalogNs mappings
+    item1 = {
+        "id": "uuid-123",
+        "catalogNs": {"mappings": [{"pageSlug": "slug-from-catalog"}]}
+    }
+    assert crawler._extract_slug(item1) == "slug-from-catalog"
+
+    # 2. offerMappings
+    item2 = {
+        "id": "uuid-123",
+        "offerMappings": [{"pageSlug": "slug-from-offer"}]
+    }
+    assert crawler._extract_slug(item2) == "slug-from-offer"
+
+    # 3. productSlug
+    item3 = {
+        "id": "uuid-123",
+        "productSlug": "slug-from-product"
+    }
+    assert crawler._extract_slug(item3) == "slug-from-product"
+
+    # 4. id (fallback)
+    item4 = {
+        "id": "uuid-123"
+    }
+    assert crawler._extract_slug(item4) == "uuid-123"

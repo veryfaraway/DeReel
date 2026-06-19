@@ -86,6 +86,15 @@ class EpicCrawler(BaseCrawler):
 
     @staticmethod
     def _extract_slug(item: dict[str, Any]) -> str:
+        catalog_ns = item.get("catalogNs") or {}
+        mappings = catalog_ns.get("mappings") or []
+        if mappings and isinstance(mappings, list) and mappings[0].get("pageSlug"):
+            return mappings[0]["pageSlug"]
+
+        offer_mappings = item.get("offerMappings") or []
+        if offer_mappings and isinstance(offer_mappings, list) and offer_mappings[0].get("pageSlug"):
+            return offer_mappings[0]["pageSlug"]
+
         raw = item.get("productSlug") or item.get("urlSlug") or item.get("id", "")
         return str(raw).split("/")[0]
 

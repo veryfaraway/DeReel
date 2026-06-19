@@ -73,7 +73,19 @@ class GogCrawler(BaseCrawler):
         # "999 USD" → 9.99
         original = self._parse_price(price_entry["basePrice"])
         current  = self._parse_price(price_entry["finalPrice"])
-        store_url = f"https://www.gog.com/en/game/{product_id}"
+
+        slug = product_id
+        try:
+            prod_resp = await self._client.get(
+                PRODUCT_URL.format(product_id=product_id),
+                headers={"Accept": "application/json"}
+            )
+            if prod_resp.status_code == 200:
+                slug = prod_resp.json().get("slug", product_id)
+        except Exception as e:
+            logger.warning(f"[gog] {name}({product_id}) slug 정보 조회 실패 — {e}")
+
+        store_url = f"https://www.gog.com/en/game/{slug}"
 
         # 무료 게임
         if current == 0:

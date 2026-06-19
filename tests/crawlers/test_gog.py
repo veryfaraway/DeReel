@@ -98,6 +98,28 @@ async def test_fetch_returns_empty_on_http_error(crawler):
     assert results == []
 
 
+@pytest.mark.asyncio
+async def test_fetch_slug_from_product_url(crawler):
+    mock_prices_resp = MagicMock()
+    mock_prices_resp.raise_for_status = MagicMock()
+    mock_prices_resp.json.return_value = _make_prices_response(3999, 999, "USD")
+
+    mock_product_resp = MagicMock()
+    mock_product_resp.status_code = 200
+    mock_product_resp.json.return_value = {"slug": "real_slug_from_api"}
+
+    async def mock_get(url, **kwargs):
+        if "prices" in url:
+            return mock_prices_resp
+        return mock_product_resp
+
+    crawler._client.get = AsyncMock(side_effect=mock_get)
+
+    results = await crawler.fetch_products(MOCK_PRODUCTS, currency="USD")
+    
+    assert len(results) == 1
+    assert results[0].url == "https://www.gog.com/en/game/real_slug_from_api"
+
 
 # ── PriceResult 로직 테스트 ───────────────────────────────────────────────────
 def test_should_notify_when_below_target():

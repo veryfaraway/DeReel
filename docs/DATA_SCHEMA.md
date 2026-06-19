@@ -100,7 +100,7 @@ class PriceResult(BaseModel):
 | `steam` (bundle) | Steam Bundle ID (정수 문자열) | `"6588"` |
 | `coupang` | 쿠팡 상품 ID | `"12345678"` |
 | `gog` | GOG Product ID (정수 문자열) | `"1207658885"` |
-| `epic` | Epic Offer ID (UUID) | `"a3b4c5d6-..."` |
+| `epic` | Epic Game Slug (문자열) | `"transistor"` |
 | `amazon` | ASIN | `"B09V3KXJPB"` |
 
 **복합 고유키 (composite key)**
