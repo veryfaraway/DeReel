@@ -26,5 +26,9 @@
   "epic:4ee365fd76704f37ae3dc13676f1ac61:free": {
     "last_sent_at": 1781811191.618302,
     "last_alerted_price": 0.0
+  },
+  "epic:robobeat-5f084b:free": {
+    "last_sent_at": 1781880717.886323,
+    "last_alerted_price": 0.0
   }
 }

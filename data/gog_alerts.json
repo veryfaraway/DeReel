@@ -26,5 +26,9 @@
   "gog:1207664663:price": {
     "last_sent_at": 1781700641.622956,
     "last_alerted_price": 3.99
+  },
+  "gog:1207658833:price": {
+    "last_sent_at": 1781880717.193065,
+    "last_alerted_price": 3.29
   }
 }
