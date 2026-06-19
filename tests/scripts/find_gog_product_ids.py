@@ -7,12 +7,16 @@ from loguru import logger
 # ── 조회할 slug 목록 ──────────────────────────────────────────────────────────
 SLUGS = [
     "the_secret_of_monkey_island_special_edition",
-    "kings_quest_1_2_3",
     "monkey_island_2_special_edition_lechucks_revenge",
     "indiana_jones_and_the_fate_of_atlantis",
     "indiana_jones_and_the_last_crusade",
     "the_curse_of_monkey_island",
-    "cyberpunk_2077",
+    "kings_quest_1_2_3",
+    "kings_quest_4_5_6",
+    "kings_quest_7_8",
+    "space_quest_1_2_3",
+    "space_quest_4_5_6",
+    "the_witcher_3_wild_hunt_game_of_the_year_edition",
     "the_witcher_3_wild_hunt",
 ]
 

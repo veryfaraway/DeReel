@@ -28,25 +28,34 @@ targets:
     products:
       - product_id: "1207666253"
         name: "The Secret of Monkey Island™: Special Edition"
-        target_price: 4.99
+        target_price: 3.99
       - product_id: "1207658878"
         name: "King's Quest 1+2+3"
-        target_price: 4.99
+        target_price: 3.99
       - product_id: "1425039730"
         name: "Monkey Island™ 2 Special Edition: LeChuck's Revenge™"
-        target_price: 4.99
+        target_price: 3.99
       - product_id: "1207666293"
         name: "Indiana Jones® and the Fate of Atlantis™"
-        target_price: 4.99
+        target_price: 3.99
       - product_id: "1440410803"
         name: "Indiana Jones® and the Last Crusade™"
-        target_price: 4.99
+        target_price: 3.99
       - product_id: "1528148981"
         name: "The Curse of Monkey Island™"
-        target_price: 4.99
-      - product_id: "2093619782"
-        name: "Cyberpunk 2077"
-        target_price: 4.99
+        target_price: 3.99
+      - product_id: "1207658839"
+        name: "King's Quest 4+5+6"
+        target_price: 3.99
+      - product_id: "1207658881"
+        name: "King's Quest 7+8"
+        target_price: 3.99
+      - product_id: "1207658875"
+        name: "Space Quest 1+2+3"
+        target_price: 3.99
+      - product_id: "1207658833"
+        name: "Space Quest 4+5+6"
+        target_price: 3.99
       - product_id: "1207664663"
         name: "The Witcher 3: Wild Hunt"
         target_price: 4.99
