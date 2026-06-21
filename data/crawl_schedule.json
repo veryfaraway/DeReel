@@ -2,17 +2,17 @@
   "schedules": {
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/ipad": 1778070208.768335,
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1778070215.484579,
-    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1782050186.736583,
-    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1782050188.821056,
-    "steam": 1782056982.528176,
-    "gog": 1782042080.340224,
-    "epic": 1782042080.611682
+    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1782069757.38147,
+    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1782069760.363779,
+    "steam": 1782069748.202908,
+    "gog": 1782069753.673915,
+    "epic": 1782069754.958574
   },
   "failures": {
     "epic": {
       "consecutive_failures": 0,
       "last_error_message": "",
-      "updated_at": "2026-06-21T11:41:20.611993+00:00"
+      "updated_at": "2026-06-21T19:22:34.958800+00:00"
     }
   }
 }
