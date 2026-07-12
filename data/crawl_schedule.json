@@ -5,14 +5,14 @@
     "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1783861561.549953,
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1783861563.773975,
     "steam": 1783867850.374942,
-    "gog": 1783851716.107916,
-    "epic": 1783851717.303797
+    "gog": 1783875209.056399,
+    "epic": 1783875209.567907
   },
   "failures": {
     "epic": {
       "consecutive_failures": 0,
       "last_error_message": "",
-      "updated_at": "2026-07-12T10:21:57.303966+00:00"
+      "updated_at": "2026-07-12T16:53:29.568134+00:00"
     }
   }
 }
