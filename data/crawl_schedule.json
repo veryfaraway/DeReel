@@ -5,15 +5,15 @@
     "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1785246624.367905,
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1785246626.657775,
     "steam": 1785246622.018858,
-    "gog": 1785227028.156904,
-    "epic": 1785227028.561804,
-    "apple_refurb:https://www.apple.com/shop/refurbished/homepod": 1785237128.202567
+    "gog": 1785254496.187453,
+    "epic": 1785254496.352003,
+    "apple_refurb:https://www.apple.com/shop/refurbished/homepod": 1785254498.634886
   },
   "failures": {
     "epic": {
       "consecutive_failures": 0,
       "last_error_message": "",
-      "updated_at": "2026-07-28T08:23:48.562064+00:00"
+      "updated_at": "2026-07-28T16:01:36.352344+00:00"
     }
   }
 }
