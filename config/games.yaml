@@ -56,8 +56,8 @@ targets:
       - product_id: "1207658833"
         name: "Space Quest 4+5+6"
         target_price: 3.99
-      - product_id: "1207664663"
-        name: "The Witcher 3: Wild Hunt"
+      - product_id: "1640424747"
+        name: "The Witcher 3: Wild Hunt - Complete Edition"
         target_price: 4.99
 
   - site: epic

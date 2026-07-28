@@ -11,6 +11,7 @@ SLUGS = [
     "indiana_jones_and_the_fate_of_atlantis",
     "indiana_jones_and_the_last_crusade",
     "the_curse_of_monkey_island",
+    "full_throttle_remastered",
     "kings_quest_1_2_3",
     "kings_quest_4_5_6",
     "kings_quest_7_8",
