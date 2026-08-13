@@ -58,5 +58,9 @@
   "epic:we-were-here-together-6a6d66:free": {
     "last_sent_at": 1786557260.369874,
     "last_alerted_price": 0.0
+  },
+  "epic:caravan-sandwitch-05ff58:free": {
+    "last_sent_at": 1786653327.659075,
+    "last_alerted_price": 0.0
   }
 }
