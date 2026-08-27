@@ -66,5 +66,9 @@
   "epic:albion-online-7eb24d:free": {
     "last_sent_at": 1787837765.902378,
     "last_alerted_price": 0.0
+  },
+  "epic:breathedge:free": {
+    "last_sent_at": 1787873277.087127,
+    "last_alerted_price": 0.0
   }
 }
