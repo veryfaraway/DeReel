@@ -4,7 +4,7 @@
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1778070215.484579,
     "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1788950153.280525,
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1788950155.417006,
-    "steam": 1788950146.679852,
+    "steam": 1788965968.514827,
     "gog": 1788950150.752064,
     "epic": 1788950151.001001,
     "apple_refurb:https://www.apple.com/shop/refurbished/homepod": 1788950157.815408
@@ -14,6 +14,11 @@
       "consecutive_failures": 0,
       "last_error_message": "",
       "updated_at": "2026-09-09T10:35:51.001301+00:00"
+    },
+    "apple_refurb": {
+      "consecutive_failures": 3,
+      "last_error_message": "REFURB_GRID_BOOTSTRAP 미발견 — 페이지 구조 변경 가능성",
+      "updated_at": "2026-09-09T14:59:36.916327+00:00"
     }
   }
 }
