@@ -74,5 +74,13 @@
   "epic:alone-with-you-028a15:free": {
     "last_sent_at": 1789007840.924328,
     "last_alerted_price": 0.0
+  },
+  "epic:luftrausers-51e5e9:free": {
+    "last_sent_at": 1789068354.326622,
+    "last_alerted_price": 0.0
+  },
+  "epic:astral-ascent-b33bc2:free": {
+    "last_sent_at": 1789068354.652275,
+    "last_alerted_price": 0.0
   }
 }
