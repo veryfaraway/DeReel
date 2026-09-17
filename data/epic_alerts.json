@@ -82,5 +82,13 @@
   "epic:astral-ascent-b33bc2:free": {
     "last_sent_at": 1789628493.789808,
     "last_alerted_price": 0.0
+  },
+  "epic:mindcop-78e6c1:free": {
+    "last_sent_at": 1789666054.154123,
+    "last_alerted_price": 0.0
+  },
+  "epic:shogun-showdown-61832d:free": {
+    "last_sent_at": 1789666054.520953,
+    "last_alerted_price": 0.0
   }
 }
