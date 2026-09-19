@@ -84,11 +84,11 @@
     "last_alerted_price": 0.0
   },
   "epic:mindcop-78e6c1:free": {
-    "last_sent_at": 1789759365.017458,
+    "last_sent_at": 1789855336.626923,
     "last_alerted_price": 0.0
   },
   "epic:shogun-showdown-61832d:free": {
-    "last_sent_at": 1789759365.422621,
+    "last_sent_at": 1789855336.970796,
     "last_alerted_price": 0.0
   }
 }
