@@ -15,5 +15,9 @@
   "apple_refurb:FU963KH/A:stock": 1778070214.31801,
   "apple_refurb:G1JVJKH/A:stock": 1778070214.760368,
   "apple_refurb:G1FC2KH/A:stock": 1778070215.117834,
-  "apple_refurb:FX2V3KH/A:stock": 1778070215.484031
+  "apple_refurb:FX2V3KH/A:stock": 1778070215.484031,
+  "apple_refurb:FDEW4LL/A:stock": {
+    "last_sent_at": 1790037010.117198,
+    "last_alerted_price": null
+  }
 }
