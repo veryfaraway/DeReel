@@ -17,7 +17,10 @@ targets:
         target_price: 5000
       - package_id: "2102"
         name: "LucasArts Adventure Pack"
-        target_price: 10000
+        target_price: 8000
+      - bundle_id: "575"
+        name: "Sid Meier's Civilization V: Complete"
+        target_price: 12000
 
   - site: gog
     type: price
