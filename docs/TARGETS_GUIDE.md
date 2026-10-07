@@ -1,192 +1,212 @@
-# DeReel — targets.yaml 설정 가이드
+# DeReel — 크롤링 타겟 설정 및 검증 가이드
 
-> **연관 문서:** [HOW_TO_ADD_CRAWLER.md](./HOW_TO_ADD_CRAWLER.md) | [ARCHITECTURE.md](./ARCHITECTURE.md)
-
----
-
-## 개요
-
-`config/targets.yaml`은 DeReel의 모든 크롤링 동작을 제어하는 중앙 설정 파일이다.  
-**코드를 수정하지 않고** 이 파일만 편집해서 감시 대상을 추가/수정/비활성화할 수 있다.
+> **버전:** v0.2.0  
+> **최종 수정일:** 2026-10-08  
+> **연관 문서:** [DATA_SCHEMA.md](./DATA_SCHEMA.md) | [HOW_TO_ADD_CRAWLER.md](./HOW_TO_ADD_CRAWLER.md) | [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ---
 
-## 전체 구조
+## 1. 개요 및 설정 파일 구조
+
+DeReel은 코드를 수정하지 않고 YAML 설정 파일만으로 감시 대상을 추가/수정/비활성화할 수 있습니다.  
+유지보수성과 가독성을 위해 타겟은 **도메인별 설정 파일**로 분리되어 관리됩니다.
+
+```
+config/
+  ├── games.yaml      # 게임 가격/무료 감시 (Steam, GOG, Epic)
+  ├── stock.yaml      # 재고 감시 (Apple 리퍼비시)
+  └── shopping.yaml   # 이커머스 쇼핑몰 감시 (추후 지원 예정)
+```
+
+* **실행 방식**: [dereel/run.py](file:///Users/ultimate/Workspace/personal/DeReel/dereel/run.py)는 `config/*.yaml`을 자동으로 전체 순회 실행하거나, `--config config/games.yaml`과 같이 특정 파일만 지정해 실행할 수 있습니다.
+* **알림 조건**: 가격 감시(`price`)의 경우 `현재 가격 <= target_price`를 만족할 때 Telegram 알림이 발송되며, 24시간 동안 중복 알림이 방지됩니다.
+
+---
+
+## 2. 공통 필드 명세
+
+모든 `config/*.yaml`의 `targets` 항목은 아래 기본 구조를 따릅니다:
 
 ```yaml
 targets:
-  - site: <크롤러 ID>        # 필수 — CRAWLER_REGISTRY 키와 일치해야 함
-    type: stock | price      # 필수 — 크롤러 종류
-    interval_hours: <숫자>   # 필수 — 크롤링 간격 (시간)
-    url: <URL>               # 사이트별 필수 여부 다름
-    enabled: true | false    # 선택 (기본: true)
-    dry_run: true | false    # 선택 (기본: false)
+  - site: <크롤러 ID>        # 필수 — CRAWLER_REGISTRY 키와 일치 (steam, gog, apple_refurb 등)
+    type: stock | price      # 필수 — 크롤러 종류 (재고: stock, 가격: price)
+    interval_hours: <숫자>   # 필수 — 크롤링 최소 간격 (시간 단위, 1~24)
+    currency: <통화코드>     # 선택 — 기준 통화 (기본: KRW 또는 USD)
+    url: <URL>               # stock 타입 필수
+    enabled: true | false    # 선택 — 활성화 여부 (기본: true)
+    dry_run: true | false    # 선택 — true 시 알림 발송 스킵 (기본: false)
+    products: []             # price 타입 필수 — 감시 제품 목록
 ```
+
+### `interval_hours` 및 스케줄 동작 방식
+* GitHub Actions는 매시간 실행되지만, `data/crawl_schedule.json`에 기록된 마지막 크롤링 시각 기준으로 `interval_hours`가 지나지 않은 타겟은 자동으로 건너뜁니다.
+* 즉시 재실행이 필요할 경우 `data/crawl_schedule.json`에서 해당 키를 삭제하거나 캐시를 초기화합니다.
 
 ---
 
-## 필드 설명
+## 3. Steam 타겟 등록 가이드
 
-### `site` (필수)
+Steam은 상품 유형(단일 게임, 패키지, 번들)에 따라 URL 및 파싱 방식이 다릅니다. URL을 확인하고 알맞은 식별자 키 **하나만** 지정합니다.
 
-크롤러를 식별하는 ID. `dereel/run.py`의 `CRAWLER_REGISTRY`에 등록된 키와 정확히 일치해야 한다.
+### 3.1 상품 유형별 식별자 구분
 
-```python
-# dereel/run.py
-CRAWLER_REGISTRY = {
-    "apple_refurb": AppleRefurbCrawler,
-    # "steam": SteamCrawler,   # 추후 추가
-    # "epic": EpicCrawler,     # 추후 추가
-}
-```
+| 상품 유형 | 스토어 URL 패턴 | YAML 식별자 키 | 데이터 수집 방식 |
+|---|---|---|---|
+| **단일 게임 (App)** | `store.steampowered.com/app/{id}/` | `app_id: "{id}"` | 공식 Store API (`appdetails`) |
+| **패키지 (Package/Sub)** | `store.steampowered.com/sub/{id}/` | `package_id: "{id}"` | 공식 Store API (`packagedetails`) |
+| **번들 (Bundle)** | `store.steampowered.com/bundle/{id}/` | `bundle_id: "{id}"` | 번들 스토어 HTML 파싱 |
 
-### `type` (필수)
+> 💡 **App → Package Fallback**: 사용자가 패키지 ID를 `app_id`로 잘못 등록한 경우, 단일 앱 조회 실패 시 자동으로 Package API 조회를 2차 시도합니다.
 
-크롤러의 동작 유형. GHA 워크플로와 연결된다.
-
-| 값 | 설명 | 연결 워크플로 |
-|---|---|---|
-| `stock` | 재고 변동 감시 (입고/품절) | `crawl_stock.yml` |
-| `price` | 가격 변동 감시 (목표가, 할인율) | `crawl_price.yml` |
-
-### `interval_hours` (필수)
-
-크롤링 최소 간격 (시간 단위). GHA는 매시간 실행되지만, 마지막 크롤링 시각 기준으로 `interval_hours`가 경과하지 않으면 스킵된다.
-
-```
-GHA 매시간 실행
-  → interval_hours: 4 설정 시 → 4회 중 3회 스킵, 1회만 실제 크롤링
-```
-
-> ⚠️ GHA cron 최소 단위가 1시간이므로 `interval_hours: 1` 미만은 의미 없다.
-
-**사이트별 권장 값:**
-
-| 사이트 | 권장 `interval_hours` | 이유 |
-|---|---|---|
-| apple_refurb | 4 | 재고 변동이 잦지 않음 |
-| steam | 3 | 특가 감지 적시성 |
-| epic | 6 | 무료 게임은 주 단위 변경 |
-| amazon | 12 | 가격 변동 느림 + 차단 리스크 |
-
-### `url` (크롤러별 필수)
-
-크롤링 대상 URL. 동일 `site`에 URL이 다르면 **별도 스케줄**로 독립 관리된다.  
-스케줄 키는 `{site}:{url}` 조합으로 생성된다.
-
-```yaml
-# ipad와 mac은 별도 스케줄로 관리됨
-- site: apple_refurb
-  url: "https://www.apple.com/kr/shop/refurbished/ipad"
-  interval_hours: 4
-
-- site: apple_refurb
-  url: "https://www.apple.com/kr/shop/refurbished/mac"
-  interval_hours: 4
-```
-
-### `enabled` (선택, 기본: `true`)
-
-`false`로 설정하면 해당 항목은 완전히 무시된다.  
-크롤러 구현 전 미리 설정을 작성해두거나, 일시적으로 비활성화할 때 사용한다.
-
-```yaml
-- site: steam
-  enabled: false    # 크롤러 미구현 — 비활성화
-```
-
-### `dry_run` (선택, 기본: `false`)
-
-`true`로 설정하면 크롤링은 실행되지만 **Telegram 알림은 발송되지 않는다.**  
-새 크롤러 테스트 시 사용한다.
-
-```yaml
-- site: epic
-  dry_run: true     # 개발 중 — 알림 없이 동작 확인
-```
-
----
-
-## 예시
-
-### Phase 1-A — Apple 리퍼비시만
+### 3.2 Steam 설정 예시 (`config/games.yaml`)
 
 ```yaml
 targets:
-  - site: apple_refurb
-    type: stock
-    interval_hours: 4
-    url: "https://www.apple.com/kr/shop/refurbished/ipad"
-    enabled: true
-    dry_run: false
-
-  - site: apple_refurb
-    type: stock
-    interval_hours: 4
-    url: "https://www.apple.com/kr/shop/refurbished/mac"
-    enabled: true
-    dry_run: false
-```
-
-### Phase 1-B — Steam/Epic 추가 예정
-
-```yaml
-targets:
-  - site: apple_refurb
-    type: stock
-    interval_hours: 4
-    url: "https://www.apple.com/kr/shop/refurbished/ipad"
-    enabled: true
-    dry_run: false
-
   - site: steam
     type: price
     interval_hours: 3
+    currency: KRW
     enabled: true
     dry_run: false
     products:
-      - product_id: "1245620"
+      # 단일 게임 (App)
+      - app_id: "1245620"
         name: "Elden Ring"
-        target_price: 30000
+        target_price: 33000
 
-  - site: epic
+      # 번들 (Bundle)
+      - bundle_id: "575"
+        name: "Sid Meier's Civilization V: Complete"
+        target_price: 12000
+
+      # 패키지 (Package)
+      - package_id: "2102"
+        name: "LucasArts Adventure Pack"
+        target_price: 10000
+```
+
+---
+
+## 4. GOG 타겟 등록 가이드
+
+GOG는 웹 브라우저 URL에 영문 슬러그(slug)가 노출되지만, 내부 API는 숫자 `product_id`를 사용합니다.
+
+### 4.1 `product_id` 추출 방법
+
+#### 방법 A: 도우미 스크립트 활용 (권장)
+[tests/scripts/find_gog_product_ids.py](file:///Users/ultimate/Workspace/personal/DeReel/tests/scripts/find_gog_product_ids.py)를 사용하면 슬러그로부터 `product_id` 추출, 가격 검증 및 YAML 스니펫 생성을 자동화할 수 있습니다:
+
+1. `tests/scripts/find_gog_product_ids.py`의 `SLUGS` 목록에 원하는 게임의 슬러그를 추가합니다:
+   ```python
+   # 예: https://www.gog.com/en/game/the_witcher_3_wild_hunt
+   SLUGS = [
+       "the_witcher_3_wild_hunt",
+   ]
+   ```
+2. 스크립트를 실행합니다:
+   ```bash
+   uv run python tests/scripts/find_gog_product_ids.py
+   ```
+3. 콘솔에 자동 출력되는 `# targets.yaml 복사용 스니펫`의 내용을 [config/games.yaml](file:///Users/ultimate/Workspace/personal/DeReel/config/games.yaml)에 복사합니다.
+
+#### 방법 B: 웹 브라우저 수동 확인
+게임 스토어 페이지 소스 보기에서 `"id":"` 패턴을 검색하여 8~10자리 숫자 ID를 확인합니다.
+
+### 4.2 GOG 설정 예시 (`config/games.yaml`)
+
+```yaml
+  - site: gog
     type: price
     interval_hours: 6
+    currency: USD            # GOG는 주로 USD 기준
     enabled: true
     dry_run: false
+    products:
+      - product_id: "1640424747"
+        name: "The Witcher 3: Wild Hunt - Complete Edition"
+        target_price: 4.99
 ```
 
 ---
 
-## 스케줄 상태 확인
+## 5. 타겟 검증 절차 (Verification Guide)
 
-크롤링 실행 시각은 `data/crawl_schedule.json`에 자동 저장된다:
+타겟을 추가하거나 수정한 후 정상 동작을 확인하는 3단계 검증 절차입니다.
 
-```json
-{
-  "apple_refurb:https://www.apple.com/kr/shop/refurbished/ipad": 1746380940.603,
-  "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1746380943.742
-}
+### 1단계: 단위 테스트 실행 (Mock 검증)
+크롤러 파서 및 예외 처리 로직에 이상이 없는지 확인합니다:
+
+```bash
+# Steam 단위 테스트
+uv run pytest tests/crawlers/test_steam.py -v
+
+# GOG 단위 테스트
+uv run pytest tests/crawlers/test_gog.py -v
 ```
 
-다음 실행 예정 시각 = 저장된 timestamp + `interval_hours × 3600`
+### 2단계: 단일 타겟 실시간 수집 검증 (CLI 원라이너)
+신규 타겟 ID로 실제 스토어에서 데이터를 가져오는지 즉시 확인합니다:
 
-즉시 재실행이 필요하면 해당 키를 삭제하거나 GHA `workflow_dispatch`로 수동 실행한다.
+* **Steam 단일 타겟 확인**:
+  ```bash
+  uv run python -c "
+  import asyncio
+  from dereel.crawlers.steam import SteamCrawler
+  async def main():
+      async with SteamCrawler() as c:
+          # bundle_id 확인 예시 (_fetch_app, _fetch_package 가능)
+          res = await c._fetch_bundle('575', 'Civ V Complete', 'KRW', 'kr')
+          print(res)
+  asyncio.run(main())
+  "
+  ```
+
+* **GOG 단일 타겟 확인**:
+  ```bash
+  uv run python -c "
+  import asyncio
+  from dereel.crawlers.gog import GogCrawler
+  async def main():
+      async with GogCrawler() as c:
+          res = await c._fetch_one('1640424747', 'Witcher 3', 'USD', 'US')
+          print(res)
+  asyncio.run(main())
+  "
+  ```
+
+### 3단계: 전체 연동 드라이런 (Dry-run) 검증
+1. [config/games.yaml](file:///Users/ultimate/Workspace/personal/DeReel/config/games.yaml)에서 테스트할 대상의 `dry_run: true` 여부를 확인합니다.
+2. `interval_hours` 스킵을 방지하기 위해 스케줄 캐시를 초기화합니다:
+   ```bash
+   echo '{}' > data/crawl_schedule.json
+   ```
+3. 크롤러를 실행하고 로그를 점검합니다:
+   ```bash
+   uv run python -m dereel.run --config config/games.yaml
+   ```
+4. **확인 사항**:
+   * 각 타겟의 `원가 / 현재가 (할인율)` 로그 정상 출력
+   * `[config/games.yaml] 크롤링 완료 ✅` 로그 확인
 
 ---
 
-## 자주 묻는 질문
+## 6. 자주 묻는 질문 & 트러블슈팅
 
-**Q. `등록되지 않은 크롤러` 경고가 나와요.**  
-→ `dereel/run.py`의 `CRAWLER_REGISTRY`에 해당 `site` 키를 등록해야 한다. [HOW_TO_ADD_CRAWLER.md](./HOW_TO_ADD_CRAWLER.md) 참고.
+**Q. Steam 번들 API 호출 시 403 Forbidden 오류가 발생합니다.**  
+→ Steam의 `/api/bundledetails` 엔드포인트는 비공개되어 차단됩니다. DeReel의 [SteamCrawler](file:///Users/ultimate/Workspace/personal/DeReel/dereel/crawlers/steam.py)는 `bundle_id` 설정 시 번들 스토어 HTML을 스크래핑해 안전하게 가격을 추출하므로 반드시 `bundle_id` 키를 사용해야 합니다.
 
-**Q. `enabled: false`였다가 다시 활성화하면 즉시 실행되나요?**  
-→ `data/crawl_schedule.json`에 이전 실행 기록이 남아 있으면 `interval_hours` 체크가 적용된다. 즉시 실행하려면 해당 키를 삭제한다.
+**Q. GOG 가격이 정수 문자열(`4990 KRW`)로 옵니다.**  
+→ GOG API는 통화에 따라 센트 단위 정수 문자열로 반환합니다. DeReel이 자동으로 `/ 100` 변환하여 처리하므로 `target_price`에는 실제 금액(`49.90` 또는 `3.99`)을 적으면 됩니다.
+
+**Q. 설정을 추가했는데 크롤링이 스킵됩니다.**  
+→ `data/crawl_schedule.json`에 이전 실행 기록이 남아 `interval_hours` 체크에 걸린 것입니다. `echo '{}' > data/crawl_schedule.json`으로 스케줄 캐시를 초기화하면 즉시 실행됩니다.
 
 ---
 
-## 변경 이력
+## 7. 변경 이력
 
 | 버전 | 날짜 | 내용 | 작성자 |
 |---|---|---|---|
-| v0.1.0 | 2026-05-05 | 최초 작성 | 한섭 |
+| v0.1.0 | 2026-05-05 | 최초 작성 (Apple 리퍼비시 중심) | 한섭 |
+| v0.2.0 | 2026-10-08 | `config/*.yaml` 도메인별 분리 반영, Steam(App/Package/Bundle) 및 GOG 타겟 등록 상세화, 단위 테스트/CLI/드라이런 검증 절차 통합 | Antigravity |
