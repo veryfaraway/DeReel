@@ -98,5 +98,13 @@
   "epic:buried-stars-d7c88c:free": {
     "last_sent_at": 1791388808.436454,
     "last_alerted_price": 0.0
+  },
+  "epic:out-of-sight-b96ca8:free": {
+    "last_sent_at": 1791475340.212621,
+    "last_alerted_price": 0.0
+  },
+  "epic:terrascape-2b12b1:free": {
+    "last_sent_at": 1791475340.552186,
+    "last_alerted_price": 0.0
   }
 }
