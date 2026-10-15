@@ -110,5 +110,9 @@
   "epic:agent-a-a-puzzle-in-disguise-42fe5f:free": {
     "last_sent_at": 1792078037.807,
     "last_alerted_price": 0.0
+  },
+  "epic:bad-cheese-4256d9:free": {
+    "last_sent_at": 1792104629.037258,
+    "last_alerted_price": 0.0
   }
 }
