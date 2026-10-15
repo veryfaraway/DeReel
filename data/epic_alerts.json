@@ -106,5 +106,9 @@
   "epic:terrascape-2b12b1:free": {
     "last_sent_at": 1792012308.620453,
     "last_alerted_price": 0.0
+  },
+  "epic:agent-a-a-puzzle-in-disguise-42fe5f:free": {
+    "last_sent_at": 1792078037.807,
+    "last_alerted_price": 0.0
   }
 }
