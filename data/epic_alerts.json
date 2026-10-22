@@ -114,5 +114,9 @@
   "epic:bad-cheese-4256d9:free": {
     "last_sent_at": 1792598026.634172,
     "last_alerted_price": 0.0
+  },
+  "epic:home-19212a:free": {
+    "last_sent_at": 1792692016.346792,
+    "last_alerted_price": 0.0
   }
 }
