@@ -118,5 +118,9 @@
   "epic:home-19212a:free": {
     "last_sent_at": 1793100299.805446,
     "last_alerted_price": 0.0
+  },
+  "epic:sorry-were-closed-724c86:free": {
+    "last_sent_at": 1793312340.785517,
+    "last_alerted_price": 0.0
   }
 }
