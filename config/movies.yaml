@@ -1,0 +1,11 @@
+targets:
+  - site: apple_tv
+    type: price
+    interval_hours: 6
+    currency: KRW
+    enabled: true
+    dry_run: false
+    products:
+      - product_id: "umc.cmc.535568gf8g1wriibl03pf1vqo"
+        name: "스타더스트 (Stardust, 2007)"
+        target_price: 4000

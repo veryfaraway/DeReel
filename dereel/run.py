@@ -12,12 +12,14 @@ from dereel.core.notifier import Notifier
 from dereel.core.settings import settings
 from dereel.core.storage import get_storage
 from dereel.crawlers.apple_refurb import AppleRefurbCrawler
+from dereel.crawlers.apple_tv import AppleTvCrawler
 from dereel.crawlers.epic import EpicCrawler
 from dereel.crawlers.gog import GogCrawler
 from dereel.crawlers.steam import SteamCrawler
 
 CRAWLER_REGISTRY = {
     "apple_refurb": AppleRefurbCrawler,
+    "apple_tv": AppleTvCrawler,
     "steam": SteamCrawler,
     "gog": GogCrawler,
     "epic": EpicCrawler,

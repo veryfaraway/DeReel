@@ -115,6 +115,7 @@ class Comparator:
     def _format_price_message(self, result: PriceResult, target_price: float) -> str:
         symbol = "₩" if result.currency == "KRW" else ("$" if result.currency == "USD" else "")
         suffix = "" if symbol else f" {result.currency}"
+        fmt = ",.0f" if result.currency == "KRW" else ",.2f"
 
         if result.is_free:
             price_line = "🎁 무료 전환!"
@@ -124,16 +125,23 @@ class Comparator:
                 if result.original_price > 0 else 0
             )
             price_line = (
-                f"💸 현재가: {symbol}{result.current_price:,.2f}{suffix}"
+                f"💸 현재가: {symbol}{result.current_price:{fmt}}{suffix}"
                 + (f" ({discount_pct}% 할인)" if discount_pct > 0 else "") + "\n"
-                f"📌 원가:   {symbol}{result.original_price:,.2f}{suffix}\n"
-                f"🎯 목표가: {symbol}{target_price:,.2f}{suffix}"
+                f"📌 원가:   {symbol}{result.original_price:{fmt}}{suffix}\n"
+                f"🎯 목표가: {symbol}{target_price:{fmt}}{suffix}"
             )
 
-        site_label = {"steam": "Steam", "gog": "GOG", "epic": "Epic Games"}.get(result.site, result.site)
+        site_label = {
+            "steam": "Steam",
+            "gog": "GOG",
+            "epic": "Epic Games",
+            "apple_tv": "Apple TV",
+        }.get(result.site, result.site)
+        header_icon = "🎬" if result.site == "apple_tv" else "🎮"
+        item_icon = "🍿" if result.site == "apple_tv" else "🕹"
         return (
-            f"🎮 [{site_label} 가격 알림]\n\n"
-            f"🕹 {result.name}\n"
+            f"{header_icon} [{site_label} 가격 알림]\n\n"
+            f"{item_icon} {result.name}\n"
             f"{price_line}\n"
             f"🔗 {result.url}"
         )
