@@ -122,5 +122,13 @@
   "epic:sorry-were-closed-724c86:free": {
     "last_sent_at": 1793847688.690952,
     "last_alerted_price": 0.0
+  },
+  "epic:idle-champions-of-the-forgotten-realms:free": {
+    "last_sent_at": 1793906457.64918,
+    "last_alerted_price": 0.0
+  },
+  "epic:flotsam-266287:free": {
+    "last_sent_at": 1793906457.981587,
+    "last_alerted_price": 0.0
   }
 }
