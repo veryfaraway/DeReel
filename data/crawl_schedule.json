@@ -2,24 +2,24 @@
   "schedules": {
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/ipad": 1778070208.768335,
     "apple_refurb:https://www.apple.com/kr/shop/refurbished/mac": 1778070215.484579,
-    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1794247659.387834,
-    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1794247661.378335,
-    "steam": 1794247650.040008,
-    "gog": 1794247654.689436,
-    "epic": 1794247656.61425,
-    "apple_refurb:https://www.apple.com/shop/refurbished/homepod": 1794247663.467746,
-    "apple_tv": 1794247656.839747
+    "apple_refurb:https://www.apple.com/shop/refurbished/airpods": 1794275433.76973,
+    "apple_refurb:https://www.apple.com/kr/shop/refurbished/airpods": 1794275435.883298,
+    "steam": 1794275426.252434,
+    "gog": 1794275430.533009,
+    "epic": 1794275430.887264,
+    "apple_refurb:https://www.apple.com/shop/refurbished/homepod": 1794275438.122562,
+    "apple_tv": 1794275431.3404
   },
   "failures": {
     "epic": {
       "consecutive_failures": 0,
       "last_error_message": "",
-      "updated_at": "2026-11-09T18:07:36.614574+00:00"
+      "updated_at": "2026-11-10T01:50:30.890047+00:00"
     },
     "apple_refurb": {
       "consecutive_failures": 0,
       "last_error_message": "",
-      "updated_at": "2026-11-09T18:07:43.468297+00:00"
+      "updated_at": "2026-11-10T01:50:38.151312+00:00"
     }
   }
 }
