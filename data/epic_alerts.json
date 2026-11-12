@@ -130,5 +130,9 @@
   "epic:flotsam-266287:free": {
     "last_sent_at": 1794474342.757496,
     "last_alerted_price": 0.0
+  },
+  "epic:knightica-3be45c:free": {
+    "last_sent_at": 1794505835.521683,
+    "last_alerted_price": 0.0
   }
 }
