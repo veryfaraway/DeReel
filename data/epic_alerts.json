@@ -134,5 +134,9 @@
   "epic:knightica-3be45c:free": {
     "last_sent_at": 1795076497.685921,
     "last_alerted_price": 0.0
+  },
+  "epic:mark-of-the-deep-f7dc08:free": {
+    "last_sent_at": 1795110870.695814,
+    "last_alerted_price": 0.0
   }
 }
